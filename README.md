@@ -1,11 +1,14 @@
 # Face Analyzer
 
+**Live site: [nose-studio.vercel.app](https://nose-studio.vercel.app).** Open a sample or scan your face with your camera, then edit the nose in 3D. It works on phones too. The code is in `web/nose-studio/`.
+
 Two separate codebases in one repository.
 
 | Path | Who | What |
 | --- | --- | --- |
 | `ios/` | iPhone app author | Swift + ARKit app. Captures a face and exports one JSON mesh. |
 | `web/` | Web contributor | React + Three.js site. Loads that JSON, rotates the face, edits the nose. |
+| `web/nose-studio/` | Live at [nose-studio.vercel.app](https://nose-studio.vercel.app) | Browser Nose Studio: edit the nose of a JSON or PLY mesh, or scan a face with a webcam. |
 | `shared/` | Both, only by agreement | JSON Schema and a fake sample mesh. |
 | `docs/DATA_CONTRACT.md` | Both, only by agreement | The field names and coordinate system both sides must follow. |
 
