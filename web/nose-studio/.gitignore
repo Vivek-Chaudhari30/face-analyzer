@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# Copied from ../../NoseStudio and ../../shared/samples by scripts/copy-samples.mjs
+public/samples/
