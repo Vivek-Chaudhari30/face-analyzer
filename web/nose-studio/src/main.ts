@@ -1,6 +1,7 @@
 import "./style.css";
 import type { Vec3 } from "./geometry";
-import { parseFaceMeshJson, parsePly, type MeshData } from "./meshio";
+import { CameraScan } from "./camera";
+import { meshDataFromDoc, parseFaceMeshJson, parsePly, type MeshData } from "./meshio";
 import { Studio } from "./studio";
 
 const studio = new Studio();
@@ -66,6 +67,11 @@ async function openFile(file: File) {
   else note.textContent = "Open a face-mesh .json or a triangle .ply file.";
   if (opened) showFileInPicker(file.name);
 }
+
+const camera = new CameraScan((doc) => {
+  void open("camera-scan.json", async () => meshDataFromDoc(doc)).then((ok) => ok && showFileInPicker("camera scan"));
+});
+document.getElementById("scan-camera")!.addEventListener("click", () => void camera.open());
 
 sample.addEventListener("change", () => void openSample(sample.value));
 fileInput.addEventListener("change", () => {

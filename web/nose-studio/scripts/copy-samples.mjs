@@ -1,6 +1,7 @@
-// Copies the meshes the app opens by default into public/samples.
+// Copies the meshes the app opens by default into public/samples, and the
+// MediaPipe runtime into public/mediapipe.
 // Sources stay where they already live in the repo, so nothing is duplicated in git.
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,3 +18,11 @@ const files = [
 ];
 for (const [from, name] of files) copyFileSync(from, join(out, name));
 console.log(`Copied ${files.length} sample files to public/samples`);
+
+// MediaPipe's WebAssembly runtime for the camera scan, served from our own site.
+const wasmFrom = join(here, "..", "node_modules", "@mediapipe", "tasks-vision", "wasm");
+const wasmOut = join(here, "..", "public", "mediapipe");
+mkdirSync(wasmOut, { recursive: true });
+const wasmFiles = readdirSync(wasmFrom);
+for (const name of wasmFiles) copyFileSync(join(wasmFrom, name), join(wasmOut, name));
+console.log(`Copied ${wasmFiles.length} MediaPipe runtime files to public/mediapipe`);

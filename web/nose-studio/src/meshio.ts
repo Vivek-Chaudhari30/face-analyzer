@@ -14,7 +14,7 @@ export interface FaceMeshDoc {
   blendShapes?: Record<string, number>;
   units: "meters";
   coordinateSystem: "ARKit face-local";
-  topology: "ARFaceGeometry" | "sample";
+  topology: "ARFaceGeometry" | "MediaPipeFaceMesh" | "sample";
   vertexCount: number;
   triangleCount: number;
 }
@@ -44,6 +44,8 @@ const ALLOWED_KEYS = new Set([
   "triangleCount",
 ]);
 
+const TOPOLOGIES: FaceMeshDoc["topology"][] = ["ARFaceGeometry", "MediaPipeFaceMesh", "sample"];
+
 const isFiniteNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
 function tuples(value: unknown, size: number, field: string, count?: number): number[][] {
@@ -69,8 +71,8 @@ export function validateFaceMesh(raw: unknown): FaceMeshDoc {
   if (unknown.length) throw new Error(`Unknown fields: ${unknown.sort().join(", ")}.`);
   if (doc.units !== "meters") throw new Error('units must be "meters".');
   if (doc.coordinateSystem !== "ARKit face-local") throw new Error('coordinateSystem must be "ARKit face-local".');
-  if (doc.topology !== "ARFaceGeometry" && doc.topology !== "sample") {
-    throw new Error('topology must be "ARFaceGeometry" or "sample".');
+  if (!TOPOLOGIES.includes(doc.topology as FaceMeshDoc["topology"])) {
+    throw new Error('topology must be "ARFaceGeometry", "MediaPipeFaceMesh" or "sample".');
   }
   const vertices = tuples(doc.vertices, 3, "vertices");
   if (vertices.length < 3) throw new Error("A mesh needs at least 3 vertices.");
@@ -114,7 +116,11 @@ export function parseFaceMeshJson(text: string): MeshData {
   } catch {
     throw new Error("The file is not valid JSON.");
   }
-  const doc = validateFaceMesh(raw);
+  return meshDataFromDoc(validateFaceMesh(raw));
+}
+
+/** Turns an already-validated face-mesh document into editor data. */
+export function meshDataFromDoc(doc: FaceMeshDoc): MeshData {
   const positions = new Float64Array(doc.vertices.flat());
   const colors = doc.vertexColors ? new Float32Array(doc.vertexColors.flat()) : undefined;
   return { positions, indices: new Uint32Array(doc.indices), colors, mmPerUnit: 1000, doc };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultControls, Nose, type Vec3 } from "../src/geometry";
-import { ARKIT_NOSE_LANDMARKS, arkitLandmarksFor } from "../src/landmarks";
+import { ARKIT_NOSE_LANDMARKS, fixedLandmarksFor, MEDIAPIPE_NOSE_LANDMARKS } from "../src/landmarks";
 import { iphoneScan } from "./fixtures";
 
 const scan = iphoneScan();
@@ -9,10 +9,12 @@ const at = (i: number): Vec3 => [mm[i * 3], mm[i * 3 + 1], mm[i * 3 + 2]];
 const [a, b, tip, bridge, base] = ARKIT_NOSE_LANDMARKS;
 
 describe("fixed ARKit nose landmarks", () => {
-  it("only applies to real ARKit exports", () => {
-    expect(arkitLandmarksFor(1220, "ARFaceGeometry")).toEqual(ARKIT_NOSE_LANDMARKS);
-    expect(arkitLandmarksFor(1220, "sample")).toBeNull();
-    expect(arkitLandmarksFor(4, "ARFaceGeometry")).toBeNull();
+  it("only applies to meshes with a known fixed vertex order", () => {
+    expect(fixedLandmarksFor(1220, "ARFaceGeometry")).toEqual(ARKIT_NOSE_LANDMARKS);
+    expect(fixedLandmarksFor(468, "MediaPipeFaceMesh")).toEqual(MEDIAPIPE_NOSE_LANDMARKS);
+    expect(fixedLandmarksFor(1220, "sample")).toBeNull();
+    expect(fixedLandmarksFor(4, "ARFaceGeometry")).toBeNull();
+    expect(fixedLandmarksFor(1220, "MediaPipeFaceMesh")).toBeNull();
   });
 
   it("puts the tip at the frontmost vertex", () => {

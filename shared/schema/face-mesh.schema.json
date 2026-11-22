@@ -44,7 +44,7 @@
     },
     "units": { "const": "meters" },
     "coordinateSystem": { "const": "ARKit face-local" },
-    "topology": { "enum": ["ARFaceGeometry", "sample"] },
+    "topology": { "enum": ["ARFaceGeometry", "MediaPipeFaceMesh", "sample"] },
     "vertexCount": { "type": "integer", "minimum": 3 },
     "triangleCount": { "type": "integer", "minimum": 1 }
   }

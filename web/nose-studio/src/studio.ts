@@ -17,7 +17,7 @@ import {
   type Controls,
   type Vec3,
 } from "./geometry";
-import { arkitLandmarksFor } from "./landmarks";
+import { fixedLandmarksFor } from "./landmarks";
 import { isClosed, writeFaceMeshJson, writePly, type MeshData } from "./meshio";
 import { loadManifold, sliceMesh, type Plane } from "./slice";
 
@@ -122,12 +122,14 @@ export class Studio {
     this.selected = "bridge";
     this.drawMarkers();
 
-    const fixed = arkitLandmarksFor(data.positions.length / 3, data.doc?.topology);
+    const fixed = fixedLandmarksFor(data.positions.length / 3, data.doc?.topology);
     const marks = landmarksMm ?? fixed?.map((i): Vec3 => [this.base[i * 3], this.base[i * 3 + 1], this.base[i * 3 + 2]]);
     if (marks && this.tryActivate(marks)) {
       this.say(
         fixed && !landmarksMm
-          ? "iPhone scan: nose landmarks come from ARKit's fixed vertex numbers, so you can edit right away."
+          ? data.doc?.topology === "MediaPipeFaceMesh"
+            ? "Camera scan: nose landmarks are fixed MediaPipe vertex numbers, so you can edit right away. Depth is estimated, so check the profile."
+            : "iPhone scan: nose landmarks come from ARKit's fixed vertex numbers, so you can edit right away."
           : "Drag a slider, or Shift-drag the face to adjust the selected one.",
       );
     } else if (this.previewOnly) {

@@ -16,7 +16,7 @@ One scan is one JSON file, UTF-8.
 | `blendShapes` | no | Object of expression name to a number, usually `0...1`. |
 | `units` | yes | Always `"meters"`. |
 | `coordinateSystem` | yes | Always `"ARKit face-local"`. |
-| `topology` | yes | `"ARFaceGeometry"` for a real ARKit export. `"sample"` for the checked-in sample. |
+| `topology` | yes | `"ARFaceGeometry"` for a real ARKit export. `"MediaPipeFaceMesh"` for a webcam capture from the website. `"sample"` for the checked-in sample. |
 | `vertexCount` | yes | Must equal `vertices.length`. |
 | `triangleCount` | yes | Must equal `indices.length / 3`. |
 
@@ -37,6 +37,16 @@ A real `ARFaceAnchor.geometry` export keeps the same vertex count and the same t
 
 `shared/samples/face-mesh-1.json` is the first real export from a TrueDepth iPhone. Its `topology` is `"ARFaceGeometry"`, with 1,220 vertices and 2,304 triangles. Those counts are the topology measured on that phone. Later personal scans stay out of git.
 
+## Webcam captures
+
+The website can also capture a face with an ordinary laptop or phone camera, using MediaPipe Face Landmarker in the browser. Those files set `"topology": "MediaPipeFaceMesh"`.
+
+- 468 vertices and 852 triangles, in the same order on every capture. Index `1` on one webcam capture is the same mesh point on another. Webcam and ARKit indexes do not match each other.
+- The axes are the same as an ARKit export: `+x` to the viewer's right (the person's left), `+y` up, `+z` out of the face. `coordinateSystem` stays `"ARKit face-local"` to name that convention.
+- A webcam has no depth sensor. MediaPipe estimates depth from the picture, so the profile is smoother and less exact than a TrueDepth scan.
+- A camera cannot measure size. The website scales each capture so the outer eye corners (indexes `33` and `263`) are 90 mm apart, a typical adult value, and puts the frontmost point 65 mm in front of the origin.
+- `vertexColors` are sampled from the same camera frame. `blendShapes` use the ARKit expression names that MediaPipe reports. There are no `textureCoordinates`.
+
 ## Example
 
 ```json
@@ -53,7 +63,7 @@ A real `ARFaceAnchor.geometry` export keeps the same vertex count and the same t
 
 ## Validation
 
-`shared/schema/face-mesh.schema.json` checks field names, types, the fixed `units` and `coordinateSystem` strings, and that `topology` is `ARFaceGeometry` or `sample`. It does not compare one field with another.
+`shared/schema/face-mesh.schema.json` checks field names, types, the fixed `units` and `coordinateSystem` strings, and that `topology` is `ARFaceGeometry`, `MediaPipeFaceMesh` or `sample`. It does not compare one field with another.
 
 The exporter, and any importer, must also reject a file when:
 
