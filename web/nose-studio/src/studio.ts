@@ -128,7 +128,7 @@ export class Studio {
       this.say(
         fixed && !landmarksMm
           ? data.doc?.topology === "MediaPipeFaceMesh"
-            ? "Camera scan: nose landmarks are fixed MediaPipe vertex numbers, so you can edit right away. Depth is estimated, so check the profile."
+            ? "Camera scan: nose landmarks are fixed MediaPipe vertex numbers, so you can edit right away."
             : "iPhone scan: nose landmarks come from ARKit's fixed vertex numbers, so you can edit right away."
           : "Drag a slider, or Shift-drag the face to adjust the selected one.",
       );

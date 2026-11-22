@@ -21,12 +21,12 @@ Open the address Vite prints. `npm run dev` and `npm run build` first copy the d
 ## Test
 
 ```sh
-npm test          # 58 Vitest checks
+npm test          # 74 Vitest checks
 npm run build     # typecheck + production build into dist/
 npm run preview   # serve dist/ the way a static host would
 ```
 
-`tests/geometry.test.ts` is a port of `NoseStudio/verify.py`: each edit moves only a local region, the bridge drops by the slider value, rounding keeps the apex fixed, rotation lifts the tip about the base, the wings move independently, and zero edits leave the mesh unchanged. The other tests cover the data-contract checks, JSON and PLY round trips, the fixed ARKit landmarks, solid slicing, the camera-to-mesh conversion, and the camera capture check. One test also checks that `shared/schema/face-mesh.schema.json` and the app accept the same mesh types.
+`tests/geometry.test.ts` is a port of `NoseStudio/verify.py`: each edit moves only a local region, the bridge drops by the slider value, rounding keeps the apex fixed, rotation lifts the tip about the base, the wings move independently, and zero edits leave the mesh unchanged. The other tests cover the data-contract checks, JSON and PLY round trips, the fixed ARKit landmarks, solid slicing, the camera-to-mesh conversion, combining several pictures (checked against a known 3D shape), iris sizing, and the camera capture check. One test also checks that `shared/schema/face-mesh.schema.json` and the app accept the same mesh types.
 
 ## Deploy
 
@@ -43,15 +43,24 @@ The camera only works over https (or on localhost). All of these hosts serve htt
 
 ## Camera scan
 
-**Scan with camera** builds a face mesh from a laptop or phone camera, with no iPhone needed.
+**Scan with camera** builds a face mesh from a laptop or phone camera, with no iPhone needed. It takes three pictures:
 
-1. The browser asks for camera access. The video shows mirrored, like a selfie camera.
-2. MediaPipe finds the face and places 468 points. Capture turns on when one face is facing the camera, close enough, with a relaxed expression, and held still for 0.6 seconds (`src/cameraGate.ts`).
-3. Capture reads one still frame, so the shape and the skin colors come from the same picture. The result opens in the editor with the nose landmarks already placed.
+1. **Front.** Capture turns on when one face is facing the camera, close enough, with a relaxed expression, and held still for 0.6 seconds (`src/cameraGate.ts`).
+2. **Left side.** Turn your head to your left. Capture turns on at a 28° to 55° turn, measured against the front picture. The app says "turn a little more", "turn the other way" or "not so far".
+3. **Right side.** The same, turning to your right.
 
-Everything runs on the visitor's device. No image or mesh is uploaded.
+**Use front only** skips the side pictures. Each capture reads one still frame, so the shape and colors come from the same picture. The result opens in the editor with the nose landmarks already placed. Everything runs on the visitor's device, and no image or mesh is uploaded.
 
-What to expect: a webcam has no depth sensor, so MediaPipe estimates depth from the picture. The front view looks right, but the profile is smoother than an iPhone TrueDepth scan. A camera also can't measure size, so each capture is scaled so the outer eye corners are 90 mm apart. The file format is described under "Webcam captures" in `docs/DATA_CONTRACT.md` (`"topology": "MediaPipeFaceMesh"`).
+How the pictures are combined (`src/multiView.ts`): MediaPipe gives the same 468 points in every picture. Within one picture, positions across the image are measured, but depth is only estimated. When the head turns, depth in the front picture becomes "across" in the side picture, so it gets measured. The app solves for the one 3D shape that best explains all three pictures, trusting measured positions about 20 times more than estimated depth, and ignoring points that face away from a camera. Each point takes its color from the picture that sees it most squarely.
+
+Size: a camera can't measure distance, so the app sizes the face from the iris, which is about 11.7 mm across in most adults. If the iris doesn't look right, it assumes 90 mm between the outer eye corners.
+
+How accurate it is:
+- **Known test shape:** with depth estimates flattened to 60% and noisy, three pictures recover the shape to about 0.5% of its size, against 3% for one picture. Nose height comes out at 22.0 mm against a true 23.1 mm (one picture gives 13.0 mm).
+- **Real face:** a stand-in camera rendered a real iPhone TrueDepth scan and turned it 40° each way. The midline profile (forehead, nose, lips, chin) came out within 3.0% of the tip-to-chin length, against 5.7% front-only.
+- **Not tested on a stand-in:** the iris sizing, because the rendered face has no real iris. Expect a few millimeters of error. This is fine for a preview, but it is not a medical measurement.
+
+The file format is described under "Webcam captures" in `docs/DATA_CONTRACT.md` (`"topology": "MediaPipeFaceMesh"`).
 
 ## What's different from the desktop version
 
@@ -86,9 +95,10 @@ Every key also has a button in the panel.
 | `src/geometry.ts` | The nose edits, ported line for line from `NoseStudio/geometry.py` |
 | `src/meshio.ts` | Contract JSON validation, reading and writing; PLY reading and writing |
 | `src/landmarks.ts` | Fixed ARKit and MediaPipe vertex indices for the five nose landmarks |
-| `src/camera.ts` | Camera dialog: video, MediaPipe tracking, capture |
-| `src/cameraGate.ts` | When Capture turns on: one face, facing, neutral, still |
-| `src/webcamMesh.ts` | MediaPipe landmarks to a contract face mesh (axes, scale, winding, colors) |
+| `src/camera.ts` | Camera dialog: the three steps, MediaPipe tracking, capture |
+| `src/cameraGate.ts` | When Capture turns on: one face, facing or turned the right amount, neutral, still |
+| `src/multiView.ts` | Combines front, left and right pictures into one shape |
+| `src/webcamMesh.ts` | MediaPipe landmarks to a contract face mesh (axes, iris sizing, winding, colors) |
 | `src/slice.ts` | Plane slicing with a capped cut (Manifold) |
 | `src/studio.ts` | Scene, camera, picking, sliders, keys, export |
 | `src/main.ts` | Opening samples, files and camera scans |
