@@ -64,6 +64,9 @@ section { display: flex; flex-direction: column; gap: 10px; }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
 .field.compact { flex: 0 0 auto; }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.eyes-row { align-items: center; justify-content: space-between; }
+#eye-color { width: 34px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; }
+.check:has(input:disabled) { opacity: 0.45; }
 .row { display: flex; gap: 10px; align-items: end; }
 .row > .button, .row > button { flex: 1; }
 
@@ -119,6 +122,17 @@ footer p { margin: 0 0 8px; }
   box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.3);
 }
 #camera-status { margin: 0; font-size: 16px; font-weight: 600; min-height: 1.4em; }
+#camera-hint { margin: 0; font-size: 14px; }
+#camera-steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+#camera-steps li {
+  counter-increment: step; flex: 1; padding: 6px 8px; border-radius: 8px; font-size: 13px;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); text-align: center;
+}
+#camera-steps li::before { content: counter(step) ". "; }
+#camera-steps li.current { border-color: var(--accent); color: var(--text); font-weight: 600; }
+#camera-steps li.done { color: var(--accent); }
+#camera-steps li.done::before { content: "✓ "; }
+.camera-card .row button[hidden] { display: none; }
 .camera-note { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
 @media (max-width: 820px) {

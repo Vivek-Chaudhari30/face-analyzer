@@ -152,13 +152,31 @@ describe("camera capture gate", () => {
   });
 
   it.each([
+    [{ yaw: 10, direction: "left" }, "Turn your head a little more to your left"],
+    [{ yaw: -20, direction: "left" }, "Turn the other way"],
+    [{ yaw: 70, direction: "left" }, "Not so far. Turn back a little"],
+    [{ yaw: 20, direction: "right" }, "Turn the other way"],
+    [{ yaw: -15, direction: "right" }, "Turn your head a little more to your right"],
+  ] as [GateInput["turn"], string][])("guides a side picture: %o", (turn, message) => {
+    expect(new CameraGate().evaluate(ok(5, { turn }))).toEqual({ ready: false, message });
+  });
+
+  it("accepts a good side turn even though the face no longer faces the camera", () => {
+    const gate = new CameraGate();
+    const turned = { turn: { yaw: -38, direction: "right" as const }, matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.78, 0, 0, 0, 0, 1] };
+    gate.evaluate(ok(0, turned));
+    expect(gate.evaluate(ok(1, turned)).ready).toBe(true);
+  });
+
+  it.each([
     [{ faces: 0, landmarks: undefined }, "Looking for a face"],
     [{ faces: 2 }, "Only one face in view, please"],
     [{ matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.8, 0, 0, 0, 0, 1] }, "Look straight at the camera"],
     [{ blendShapes: { jawOpen: 0.4 } }, "Close your mouth"],
     [{ blendShapes: { mouthSmileLeft: 0.6 } }, "Relax your smile"],
     [{ blendShapes: { eyeBlinkLeft: 0.9, eyeBlinkRight: 0.9 } }, "Open your eyes"],
-    [{ landmarks: domeLandmarks().map((p) => ({ ...p, x: 0.5 + (p.x - 0.5) * 0.2 })) }, "Move closer to the camera"],
+    [{ landmarks: domeLandmarks().map((p) => ({ ...p, x: 0.5 + (p.x - 0.5) * 0.4, y: 0.5 + (p.y - 0.5) * 0.4 })) }, "Move closer to the camera"],
+    [{ landmarks: domeLandmarks().map((p) => ({ ...p, y: 0.5 + (p.y - 0.5) * 2.6 })) }, "Move back a little"],
   ] as [Partial<GateInput>, string][])("blocks %o", (overrides, message) => {
     expect(new CameraGate().evaluate(ok(5, overrides))).toEqual({ ready: false, message });
   });

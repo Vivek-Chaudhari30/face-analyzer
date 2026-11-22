@@ -43,9 +43,9 @@ The website can also capture a face with an ordinary laptop or phone camera, usi
 
 - 468 vertices and 852 triangles, in the same order on every capture. Index `1` on one webcam capture is the same mesh point on another. Webcam and ARKit indexes do not match each other.
 - The axes are the same as an ARKit export: `+x` to the viewer's right (the person's left), `+y` up, `+z` out of the face. `coordinateSystem` stays `"ARKit face-local"` to name that convention.
-- A webcam has no depth sensor. MediaPipe estimates depth from the picture, so the profile is smoother and less exact than a TrueDepth scan.
-- A camera cannot measure size. The website scales each capture so the outer eye corners (indexes `33` and `263`) are 90 mm apart, a typical adult value, and puts the frontmost point 65 mm in front of the origin.
-- `vertexColors` are sampled from the same camera frame. `blendShapes` use the ARKit expression names that MediaPipe reports. There are no `textureCoordinates`.
+- A webcam has no depth sensor. In one picture MediaPipe only estimates depth. The website therefore takes three pictures (front, then the head turned about 30 to 55 degrees to each side) and combines them, so the side pictures measure the nose profile. A front-only capture keeps the estimated depth and is less exact. Either way it is less exact than a TrueDepth scan.
+- A camera cannot measure size. The website scales each capture from the iris, which is about 11.7 mm across in most adults (MediaPipe's iris points are used for this and are not stored). When the iris can't be measured, it assumes 90 mm between the outer eye corners (indexes `33` and `263`). The frontmost point sits 65 mm in front of the origin.
+- `vertexColors` come from the camera pictures. Each point takes its color from the picture that faces it most squarely. `blendShapes` use the ARKit expression names that MediaPipe reports. There are no `textureCoordinates`.
 
 ## Example
 
