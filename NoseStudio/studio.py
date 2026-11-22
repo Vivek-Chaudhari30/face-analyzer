@@ -9,6 +9,7 @@ import vtk
 from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 from vtk.util.numpy_support import numpy_to_vtkIdTypeArray
 from geometry import Nose, Controls
+import faceprop as fp
 
 HERE = Path(__file__).resolve().parent
 SPECS = [
@@ -20,6 +21,18 @@ SPECS = [
     ("wing_a", "Narrow wing A (mm)", 0, 5),
     ("wing_b", "Narrow wing B (mm)", 0, 5),
 ]
+CHIN_SPECS = [
+    ("chin_length", "Chin length (mm)", -6, 6),
+    ("chin_projection", "Chin projection (mm)", -6, 6),
+]
+BLEND_SPECS = [
+    ("blend_nose", "Nose: original to ideal (%)", 0, 100),
+    ("blend_chin", "Chin: original to ideal (%)", 0, 100),
+]
+SHORT = {"alar_icd": "Nose width / eye gap", "goode": "Tip projection ratio",
+         "dorsum_mm": "Bridge hump (mm)", "thirds": "Mid / lower third",
+         "lip_chin": "Upper lip / mouth-chin", "e_upper_mm": "Upper lip to line (mm)",
+         "e_lower_mm": "Lower lip to line (mm)"}
 MARKS = ["left outer nostril wing", "right outer nostril wing",
          "frontmost tip apex", "center of the bridge ridge",
          "center where the nose meets the upper lip"]
@@ -53,7 +66,7 @@ def read_face_export(path):
         if uv.size:
             if uv.shape!=(len(vertices),2) or uv.dtype.kind not in "ifu" or not np.isfinite(uv).all():
                 raise ValueError("Expected one finite UV pair per vertex.")
-            mesh.GetPointData().SetTCoords(numpy_to_vtk(uv.astype(float),deep=True))
+            mesh.GetPointData().SetTCoords(numpy_to_vtk(uv.astype(np.float32),deep=True))  # PLY writer needs float32
     return mesh
 
 
@@ -154,7 +167,7 @@ def panel_rect(panel, x, y, width, height, color):
     actor.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
     actor.SetPosition(0, 0)
     actor.GetProperty().SetColor(*color)
-    panel.AddActor2D(actor)
+    panel.AddViewProp(actor)
     return actor
 
 
@@ -177,6 +190,13 @@ class Studio:
         self.stroke = None
         self.c = Controls()
         self.marks, self.sliders = [], {}
+        # Real iPhone scans have fixed vertex numbering, so landmarks are automatic.
+        self.auto = path.suffix.lower()==".json" and fp.is_arkit(self.points)
+        self.face, self.ideal, self.before = None, None, None
+        self.blend = {"nose": 0.0, "chin": 0.0}
+        self.specs = (BLEND_SPECS+SPECS+CHIN_SPECS) if self.auto else SPECS
+        self.row_h = .054 if self.auto else .09
+        self.doc = json.loads(path.read_text(encoding="utf-8")) if self.auto else None
         self.original, self.linked = False, True
         self.drag = None
         self.engine = None
@@ -230,7 +250,7 @@ class Studio:
         self.guide_actor.GetProperty().SetColor(1,.45,.1)
         self.guide_actor.GetProperty().SetLineWidth(3)
         self.guide_actor.VisibilityOff()
-        self.view.AddActor2D(self.guide_actor)
+        self.view.AddViewProp(self.guide_actor)
         self.cut_label = label(self.panel,.09,.19,16,"C   Scalpel")
         self.landmark_markers = []
         label(self.panel,.07,.936,24,"Nose Studio")
@@ -240,12 +260,18 @@ class Studio:
             "Shift-drag face to adjust selected tool\n"
             "B  Move bridge brush   L  Link wings\n"
             "1 Front   2 Profile   3 Base\n"
-            "C  Scalpel   |   Z Undo slice   M Re-pick marks\n"
+            "Z  Undo slice   M  Re-pick marks\n"
+            "A  Auto-balance   P  Proportions\n"
             "Space  Before / after   R  Reset   E  Export")
         self.note = label(self.view,.04,.035,16,"")
+        self.readout = label(self.view,.02,.74,15,"")
+        self.readout.GetTextProperty().SetBackgroundColor(.04,.06,.07)
+        self.readout.GetTextProperty().SetBackgroundOpacity(.62)
+        self.readout.GetTextProperty().SetFontFamilyToCourier()
+        self.show_readout = self.auto
         self.selected = 'bridge'
-        for i, (key,title,lo,hi) in enumerate(SPECS):
-            y = .79 - i*.09
+        for i, (key,title,lo,hi) in enumerate(self.specs):
+            y = (.80 if self.auto else .79) - i*self.row_h
             caption = label(self.panel,.09,y+.012,16,title)
             track = panel_rect(self.panel,.10,y-.01,.80,.005,(.38,.43,.45))
             knob = panel_rect(self.panel,.09,y-.018,.02,.022,(.38,.82,.72))
@@ -259,7 +285,14 @@ class Studio:
         self.pending_bridge=False
         self.view.ResetCamera()
         self.note.SetInput("Front view. Click the "+MARKS[0]+".")
-        if path.resolve() == (HERE/'face.ply').resolve():
+        if self.auto:
+            self.marks = fp.mark_points(self.points)
+            self.face = fp.Face(self.points)
+            self.ideal, self.before, _ = fp.find_ideal(self.points)
+            self.activate()
+            self.camera('1')
+            self.note.SetInput("Auto-balance ready. Slide Nose / Chin to ideal, or press A.")
+        elif path.resolve() == (HERE/'face.ply').resolve():
             self.marks = np.array(json.loads((HERE/'face.json').read_text())) * scale
             self.activate()
             self.camera('1')
@@ -272,6 +305,8 @@ class Studio:
     def activate(self):
         self.marks = np.asarray(self.marks)
         self.engine = Nose(self.points, self.marks)
+        if self.face:
+            self.face.nose = self.engine
         self.refresh()
         self.camera('1')
 
@@ -302,8 +337,37 @@ class Studio:
             self.view.RemoveActor(text)
         self.landmark_markers.clear()
 
+    def value_of(self, key):
+        if key.startswith("blend_"):
+            return 100*self.blend[key[6:]]
+        return getattr(self.c, key)
+
+    def set_blend(self, region, t):
+        """Move one region's sliders to t of the way from original to ideal."""
+        self.blend[region] = float(np.clip(t, 0, 1))
+        for key in fp.REGIONS[region]:
+            setattr(self.c, key, getattr(self.ideal, key)*self.blend[region])
+        self.selected = "blend_"+region
+        self.original = False
+
+    def update_readout(self, points):
+        if not (self.auto and self.show_readout):
+            self.readout.SetInput("")
+            return
+        now = fp.measure(points)
+        lines = [f"{'PROPORTIONS':22s}{'now':>7s}{'was':>7s}{'goal':>7s}"]
+        for k, (target, *_ ) in fp.TARGETS.items():
+            lines.append(f"{SHORT[k]:22s}{now[k]:7.2f}{self.before[k]:7.2f}{target:7.2f}")
+        lines.append(f"{'Balance score':22s}{fp.penalty(now):7.1f}{fp.penalty(self.before):7.1f}")
+        self.readout.SetInput("\n".join(lines))
+
+    def deformed(self):
+        return self.face.deform(self.c) if self.face else self.engine.deform(self.c)
+
     def refresh(self):
-        new = self.points if self.original else self.engine.deform(self.c)
+        new = self.points if self.original else self.deformed()
+        if self.auto:
+            self.update_readout(new)
         self.source.GetPoints().SetData(numpy_to_vtk(np.ascontiguousarray(new/self.scale), deep=True))
         self.source.Modified()
         if self.history and not self.original:
@@ -311,14 +375,14 @@ class Studio:
         else:
             self.mesh.ShallowCopy(self.source)
         self.mesh.Modified()
-        for key,title,lo,hi in SPECS:
-            value = getattr(self.c,key)
+        for key,title,lo,hi in self.specs:
+            value = self.value_of(key)
             caption, _, knob = self.sliders[key]
             caption.SetInput(f"{title}   {value:.1f}")
             knob.SetPosition(.80*(value-lo)/(hi-lo),0)
         self.status.SetInput(("Original" if self.original else "Edited") +
                              ("   |   Wings linked" if self.linked else "   |   Wings independent"))
-        self.note.SetInput("Selected: "+next(t for k,t,_,_ in SPECS if k==self.selected))
+        self.note.SetInput("Selected: "+next(t for k,t,_,_ in self.specs if k==self.selected))
         self.cut_label.SetInput(f"C   Scalpel   {'ON' if self.scalpel else 'off'}")
         if self.scalpel:
             self.note.SetInput("Profile view: drag a vertical cut line across the nose. Release to slice.")
@@ -383,6 +447,10 @@ class Studio:
         self.selected = key
 
     def adjust(self,key,value):
+        if key.startswith("blend_"):
+            self.set_blend(key[6:], value/100)
+            self.refresh()
+            return
         self.selected = key
         self.original = False
         setattr(self.c,key,value)
@@ -439,11 +507,11 @@ class Studio:
                 self.pending_bridge=False
                 self.refresh()
                 return
-            row = round((.79 - (y-py)/height)/.09)
-            if self.engine and 0 <= row < len(SPECS):
+            row = round(((.80 if self.auto else .79) - (y-py)/height)/self.row_h)
+            if self.engine and 0 <= row < len(self.specs):
                 self.scalpel=False
                 self.panel_drag = True
-                self.selected = SPECS[row][0]
+                self.selected = self.specs[row][0]
                 self.move()
             return
         if self.preview_only:
@@ -453,7 +521,7 @@ class Studio:
             self.begin_cut()
             return
         if self.engine and self.interactor.GetShiftKey() and not self.pending_bridge:
-            self.drag=(x,getattr(self.c,self.selected))
+            self.drag=(x,self.value_of(self.selected))
         elif self.pending_bridge or (self.engine is None and not self.interactor.GetControlKey()):
             point=self.pick()
             if point is None:
@@ -488,7 +556,7 @@ class Studio:
         if self.stroke is not None:
             self.draw_cut()
             return
-        _,_,lo,hi = next(spec for spec in SPECS if spec[0]==self.selected)
+        _,_,lo,hi = next(spec for spec in self.specs if spec[0]==self.selected)
         if self.panel_drag:
             frac = (self.interactor.GetEventPosition()[0]-self.panel.GetOrigin()[0])/self.panel.GetSize()[0]
             self.adjust(self.selected, lo+(hi-lo)*np.clip((frac-.10)/.80,0,1))
@@ -542,12 +610,24 @@ class Studio:
                 self.adjust('wing_a',self.c.wing_a)
             else:
                 self.refresh()
+        elif key=='a' and self.auto:
+            for region in self.blend:
+                self.set_blend(region, 1)
+            self.note.SetInput("Ideal proportions. Drag the Nose / Chin sliders to come back toward the original.")
+            self.refresh()
+            print(fp.report(self.before, fp.measure(self.deformed())))
+        elif key=='p' and self.auto:
+            self.show_readout=not self.show_readout
+            self.refresh()
         elif key=='r':
+            self.blend = {"nose": 0.0, "chin": 0.0}
             self.history.clear()
             self.c=Controls()
             self.original=False
             self.pending_bridge=False
             self.refresh()
+        elif key=='m' and self.auto:
+            self.note.SetInput("iPhone scans use automatic landmarks. Nothing to re-pick.")
         elif key=='m':
             self.clear_landmark_markers()
             self.engine=None
@@ -568,6 +648,12 @@ class Studio:
             try:
                 write_mesh(self.mesh,path)
                 self.note.SetInput("Saved "+path.name)
+                if self.auto and not self.history:
+                    # Same contract format as the input, so the website can load it.
+                    out = dict(self.doc)
+                    out["vertices"] = vtk_to_numpy(self.mesh.GetPoints().GetData()).tolist()
+                    path.with_suffix(".json").write_text(json.dumps(out), encoding="utf-8")
+                    self.note.SetInput("Saved "+path.name+" and .json")
             except OSError as error:
                 self.note.SetInput(str(error))
         self.window.Render()

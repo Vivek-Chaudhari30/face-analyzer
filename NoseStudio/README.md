@@ -52,9 +52,29 @@ From the parent folder containing NoseStudio and face-analyzer:
     python NoseStudio/studio.py face-analyzer/shared/samples/face-mesh-1.json
     python NoseStudio/studio.py face-analyzer/shared/samples/face-mesh.sample.json
 
-Run one command at a time. The importer uses meters automatically, accepts flat triangle indices, checks the declared counts, and reads UVs when present. Expression coefficients have no effect on the imported surface. Mark the five landmarks on the face capture to enable editing. The four-vertex sample opens for inspection. PLY exports from JSON inputs retain meters.
+Run one command at a time. The importer uses meters automatically, accepts flat triangle indices, checks the declared counts, and reads UVs when present. Expression coefficients have no effect on the imported surface. Real iPhone exports (1,220 vertices) need no landmark clicks: ARKit numbers the vertices the same way on every face, so the nose and chin landmarks are fixed indexes (see Auto-balance). The four-vertex sample opens for inspection. PLY exports from JSON inputs retain meters.
 
 
 # After window opens
 
 Click the outer edges of the two nostril wings, the nose tip, the bridge ridge, and the center where the base of the nose meets the upper lip, in that order.
+
+## Auto-balance (proportion optimizer)
+
+For an iPhone export the editor measures the face, then searches for slider values that bring its proportions closer to published norms. No neural network is involved. It is a bounded least-squares fit over the sliders, solved in about 0.2 seconds.
+
+What it measures (`faceprop.py`, `TARGETS`): nose width against the gap between the eyes (equal), tip projection against nose length (Goode ratio 0.55 to 0.60), a bridge hump, the middle third against the lower third of the face, upper lip against mouth-to-chin (1:2 canon), and both lips against the nose-to-chin line (Ricketts E-line: upper lip 4 mm behind, lower lip 2 mm behind). It moves only the sliders that change those numbers: bridge, tip projection, both wings, chin length and chin projection. Round tip and tip rotation stay manual.
+
+In the studio, the top two sliders blend each region from the original (0) to the ideal (100). Press A to jump both to 100. The panel in the corner shows each ratio now, before, and the goal. P hides it. Every other slider still works on top. E also writes a contract-format JSON next to the PLY.
+
+To get the second face as files, for the website or MeshLab:
+
+    python balance.py ../shared/samples/face-mesh-1.json
+
+This writes `face-mesh-1-ideal.json`, `face-mesh-1-ideal.controls.json` (the chosen sliders in mm) and `face-mesh-1-ideal.ply`. The two JSON files have the same vertex order and triangles, so the website blends them with one line: `vertex(t) = (1 - t) * original + t * ideal`. `--limit 0.5` is the share of each slider's range the optimizer may use. Raise it for stronger changes.
+
+Limits to keep in mind:
+- The norms are averages from rhinoplasty and orthodontic papers, mostly measured on Caucasian faces, and "ideal" varies by person and culture. Treat the result as a balanced suggestion, not a perfect face.
+- ARKit's mesh is a smoothed, low-resolution fit, so the nose and chin measurements are approximate. On the first sample the tip projection ratio stays well under the norm because the optimizer is capped at half the slider range.
+- The landmark indexes were chosen on `face-mesh-1.json` and checked on that one scan. Run `python verify_ideal.py` after changing them, and look at a second person's scan before trusting them.
+- Like the rest of this tool, it is a promo visualization and not a clinical plan.
