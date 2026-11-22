@@ -12,6 +12,8 @@ class Controls:
     rotation: float = 0
     wing_a: float = 0
     wing_b: float = 0
+    chin_length: float = 0
+    chin_projection: float = 0
 
 
 def unit(v):
@@ -65,3 +67,29 @@ class Nose:
         delta[:, 0] += c.wing_a * falloff(v - self.a, [10, 11, 12])
         delta[:, 0] -= c.wing_b * falloff(v - self.b, [10, 11, 12])
         return self.points + delta @ self.axes
+
+
+def smoothstep(edge0, edge1, x):
+    t = np.clip((x - edge0) / (edge1 - edge0), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+class Chin:
+    """Chin edits for the ARKit front-face mesh (mm, ARKit face-local axes).
+
+    +y is up and +z points out of the face, so no landmark picking is needed.
+    The weight fades in below the lower lip and out toward the jaw corners.
+    """
+    LIP_Y, CHIN_Y, HALF_WIDTH = -52.0, -68.0, 55.0
+
+    def __init__(self, points):
+        self.points = points
+        x, y = points[:, 0], points[:, 1]
+        side = np.maximum(0, 1 - (x / self.HALF_WIDTH) ** 2) ** 2
+        self.weight = smoothstep(self.LIP_Y, self.CHIN_Y, y) * side
+
+    def deform(self, c):
+        delta = np.zeros_like(self.points)
+        delta[:, 1] -= c.chin_length * self.weight
+        delta[:, 2] += c.chin_projection * self.weight
+        return self.points + delta

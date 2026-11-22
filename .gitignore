@@ -7,6 +7,11 @@ scans/
 ios/exports/
 ios/**/exports/
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+
 # Secrets
 .env
 .env.*
