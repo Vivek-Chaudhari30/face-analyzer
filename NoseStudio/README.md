@@ -39,6 +39,17 @@ The editor keeps the input coordinate system, units and triangle connectivity on
 
 studio.py handles rendering, interaction and PLY I/O. geometry.py implements the deformations. sample.py regenerates face.ply and face.json. Run python verify.py to check local displacements, apex preservation for rounding, rotation direction, independent wings, brush width, zero-edit identity, and exported PLY connectivity.
 
-## Scalpel
+## Solid slicing
 
-Press C or click Scalpel in the panel. Drag over a visible surface to mark connected triangles in orange. Release to remove them. Bracket keys [ and ] adjust the cut diameter, Z undoes one cut stroke, and C returns to orbit. Multiple strokes can remove a larger patch. Space compares the cut with the original, R resets, and E exports a fresh file. Cut edges remain open. The brush removes surface triangles and its minimum detail depends on the mesh resolution.
+Press 2 for profile, then C for the scalpel. Drag a vertical line on screen through the nose at the location to cut. The orange guide follows your drag. Release to cut. The line defines a plane through the whole model. The editor keeps the side containing the model center and fills the cut with a flat surface. Z undoes a slice, Space compares with the original, and E exports the capped mesh. Use a closed mesh for solid slicing. M re-picks the five nose landmarks and displays numbered markers.
+
+The five landmarks define where local edits happen. The JSON schema standardizes mesh units and triangle topology, but does not assign semantic labels such as nose tip or nostril wings. Re-pick carefully if an edit moves the wrong region. Tip controls have a localized 12-15 mm support to avoid spill into the lower eyelids.
+
+## Open an iPhone JSON export
+
+From the parent folder containing NoseStudio and face-analyzer:
+
+    python NoseStudio/studio.py face-analyzer/shared/samples/face-mesh-1.json
+    python NoseStudio/studio.py face-analyzer/shared/samples/face-mesh.sample.json
+
+Run one command at a time. The importer uses meters automatically, accepts flat triangle indices, checks the declared counts, and reads UVs when present. Expression coefficients have no effect on the imported surface. Mark the five landmarks on the face capture to enable editing. The four-vertex sample opens for inspection. PLY exports from JSON inputs retain meters.

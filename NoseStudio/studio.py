@@ -20,13 +20,48 @@ SPECS = [
     ("wing_a", "Narrow wing A (mm)", 0, 5),
     ("wing_b", "Narrow wing B (mm)", 0, 5),
 ]
-MARKS = ["first nostril wing", "opposite nostril wing", "tip apex",
-         "bridge bump", "base where the nose meets the upper lip"]
+MARKS = ["left outer nostril wing", "right outer nostril wing",
+         "frontmost tip apex", "center of the bridge ridge",
+         "center where the nose meets the upper lip"]
+
+
+def read_face_export(path):
+    doc=json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(doc,dict):
+        raise ValueError("Expected a FaceMeshExport JSON object.")
+    if doc.get("units")!="meters" or doc.get("coordinateSystem")!="ARKit face-local":
+        raise ValueError("Expected meters in ARKit face-local coordinates.")
+    if doc.get("topology") not in ("sample","ARFaceGeometry"):
+        raise ValueError("Unknown mesh topology.")
+    vertices=np.asarray(doc.get("vertices"))
+    indices=np.asarray(doc.get("indices"))
+    if (vertices.ndim!=2 or vertices.shape[1]!=3 or len(vertices)<3 or
+            vertices.dtype.kind not in "ifu" or not np.isfinite(vertices).all()):
+        raise ValueError("Expected finite XYZ vertices.")
+    if (indices.ndim!=1 or indices.dtype.kind not in "iu" or len(indices)<3 or
+            len(indices)%3 or indices.min()<0 or indices.max()>=len(vertices)):
+        raise ValueError("Invalid triangle indices.")
+    if doc.get("vertexCount")!=len(vertices) or doc.get("triangleCount")!=len(indices)//3:
+        raise ValueError("Declared counts differ from geometry.")
+    mesh=vtk.vtkPolyData()
+    points=vtk.vtkPoints()
+    points.SetData(numpy_to_vtk(vertices.astype(float),deep=True))
+    mesh.SetPoints(points)
+    mesh.SetPolys(triangle_cells(indices.reshape(-1,3)))
+    if "textureCoordinates" in doc:
+        uv=np.asarray(doc["textureCoordinates"])
+        if uv.size:
+            if uv.shape!=(len(vertices),2) or uv.dtype.kind not in "ifu" or not np.isfinite(uv).all():
+                raise ValueError("Expected one finite UV pair per vertex.")
+            mesh.GetPointData().SetTCoords(numpy_to_vtk(uv.astype(float),deep=True))
+    return mesh
 
 
 def read_mesh(path):
     if not path.is_file():
         raise ValueError(f"Missing input: {path}")
+    if path.suffix.lower()==".json":
+        return read_face_export(path)
     reader = vtk.vtkPLYReader()
     reader.SetFileName(str(path))
     reader.Update()
@@ -57,6 +92,35 @@ def triangle_cells(faces):
     cells.SetData(numpy_to_vtkIdTypeArray(offsets, deep=True),
                   numpy_to_vtkIdTypeArray(np.ascontiguousarray(faces, dtype=np.int64).ravel(), deep=True))
     return cells
+
+
+def has_open_edges(mesh):
+    edges=vtk.vtkFeatureEdges()
+    edges.SetInputData(mesh)
+    edges.FeatureEdgesOff()
+    edges.ManifoldEdgesOff()
+    edges.Update()
+    return bool(edges.GetOutput().GetNumberOfCells())
+
+
+def capped_mesh(source, cuts):
+    normals=vtk.vtkPolyDataNormals()
+    normals.SetInputData(source)
+    normals.AutoOrientNormalsOn()
+    normals.SplittingOff()
+    planes=vtk.vtkPlaneCollection()
+    for origin,direction in cuts:
+        plane=vtk.vtkPlane()
+        plane.SetOrigin(*origin)
+        plane.SetNormal(*direction)
+        planes.AddItem(plane)
+    clip=vtk.vtkClipClosedSurface()
+    clip.SetInputConnection(normals.GetOutputPort())
+    clip.SetClippingPlanes(planes)
+    clip.GenerateFacesOn()
+    clip.PassPointDataOn()
+    clip.Update()
+    return clip.GetOutput()
 
 
 def label(renderer, x, y, size, message, color=(.84,.88,.90)):
@@ -96,23 +160,21 @@ def panel_rect(panel, x, y, width, height, color):
 
 class Studio:
     def __init__(self, path, scale):
+        if path.suffix.lower()==".json":
+            scale=1000  # JSON coordinates are always meters.
         self.path, self.scale = path, scale
         self.mesh = read_mesh(path)
         self.mesh.GetPointData().SetNormals(None)
         self.mesh.GetCellData().SetNormals(None)
         self.raw = vtk_to_numpy(self.mesh.GetPoints().GetData()).astype(float)
         self.points = self.raw * scale
+        self.preview_only = self.mesh.GetNumberOfPoints()<5
         self.faces = vtk_to_numpy(self.mesh.GetPolys().GetConnectivityArray()).reshape(-1,3).copy()
-        self.visible = np.ones(len(self.faces),dtype=bool)
+        self.source = vtk.vtkPolyData()
+        self.source.DeepCopy(self.mesh)
         self.history = []
         self.scalpel = False
-        self.radius = 3.
         self.stroke = None
-        self.last_screen = None
-        self.topology = vtk.vtkPolyData()
-        self.topology.SetPoints(self.mesh.GetPoints())
-        self.topology.SetPolys(self.mesh.GetPolys())
-        self.topology.BuildLinks()
         self.c = Controls()
         self.marks, self.sliders = [], {}
         self.original, self.linked = False, True
@@ -149,26 +211,37 @@ class Studio:
         self.actor.GetProperty().SetSpecularPower(22)
         self.view.AddActor(self.actor)
 
-        self.preview = vtk.vtkPolyData()
-        preview_mapper = vtk.vtkPolyDataMapper()
-        preview_mapper.SetInputData(self.preview)
-        preview_mapper.SetResolveCoincidentTopologyToPolygonOffset()
-        preview_mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(-2,-2)
-        preview_actor = vtk.vtkActor()
-        preview_actor.SetMapper(preview_mapper)
-        preview_actor.GetProperty().SetColor(.96,.30,.09)
-        preview_actor.PickableOff()
-        self.view.AddActor(preview_actor)
+        self.guide_points = vtk.vtkPoints()
+        self.guide_points.SetNumberOfPoints(2)
+        self.guide_cells = vtk.vtkCellArray()
+        self.guide_cells.InsertNextCell(2, [0, 1])
+        guide_data = vtk.vtkPolyData()
+        guide_data.SetPoints(self.guide_points)
+        guide_data.SetLines(self.guide_cells)
+        guide_mapper = vtk.vtkPolyDataMapper2D()
+        guide_coordinate = vtk.vtkCoordinate()
+        guide_coordinate.SetCoordinateSystemToDisplay()
+        guide_mapper.SetTransformCoordinate(guide_coordinate)
+        guide_mapper.SetInputData(guide_data)
+        self.guide_actor = vtk.vtkActor2D()
+        self.guide_actor.SetMapper(guide_mapper)
+        self.guide_actor.GetPositionCoordinate().SetCoordinateSystemToDisplay()
+        self.guide_actor.SetPosition(0, 0)
+        self.guide_actor.GetProperty().SetColor(1,.45,.1)
+        self.guide_actor.GetProperty().SetLineWidth(3)
+        self.guide_actor.VisibilityOff()
+        self.view.AddActor2D(self.guide_actor)
         self.cut_label = label(self.panel,.09,.19,16,"C   Scalpel")
+        self.landmark_markers = []
         label(self.panel,.07,.936,24,"Nose Studio")
         self.status = label(self.panel,.07,.86,15,"")
         self.help = label(self.panel,.07,.025,14,
-            "Drag face to orbit  /  Scroll to zoom\n"
+            "Drag to orbit  /  Scroll to zoom\n"
             "Shift-drag face to adjust selected tool\n"
-            "B  Pick bridge      L  Link wings\n"
+            "B  Move bridge brush   L  Link wings\n"
             "1 Front   2 Profile   3 Base\n"
-            "Space  Before / after     R  Reset\n"
-            "E  Export edited PLY")
+            "C  Scalpel   |   Z Undo slice   M Re-pick marks\n"
+            "Space  Before / after   R  Reset   E  Export")
         self.note = label(self.view,.04,.035,16,"")
         self.selected = 'bridge'
         for i, (key,title,lo,hi) in enumerate(SPECS):
@@ -185,23 +258,58 @@ class Studio:
         self.style.AddObserver("CharEvent", self.key)
         self.pending_bridge=False
         self.view.ResetCamera()
-        self.note.SetInput("Ctrl-drag to orbit. Click the "+MARKS[0]+".")
+        self.note.SetInput("Front view. Click the "+MARKS[0]+".")
         if path.resolve() == (HERE/'face.ply').resolve():
             self.marks = np.array(json.loads((HERE/'face.json').read_text())) * scale
             self.activate()
             self.camera('1')
         else:
             self.status.SetInput("LANDMARK SETUP")
+            if self.preview_only:
+                self.status.SetInput("Sample geometry")
+                self.note.SetInput("Drag to orbit. This sample has too few vertices for nose editing.")
 
     def activate(self):
         self.marks = np.asarray(self.marks)
         self.engine = Nose(self.points, self.marks)
         self.refresh()
+        self.camera('1')
+
+    def add_landmark_marker(self, point, number):
+        sphere = vtk.vtkSphereSource()
+        sphere.SetRadius(2.2 / self.scale)
+        sphere.SetThetaResolution(12)
+        sphere.SetPhiResolution(8)
+        sphere.SetCenter(*(point / self.scale))
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputConnection(sphere.GetOutputPort())
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        actor.GetProperty().SetColor((.2,.85,.9) if number < 3 else (.95,.75,.2))
+        actor.PickableOff()
+        self.view.AddActor(actor)
+        text = vtk.vtkBillboardTextActor3D()
+        text.SetInput(str(number))
+        text.SetPosition(*(point / self.scale))
+        text.GetTextProperty().SetColor(1,1,1)
+        text.GetTextProperty().SetFontSize(18)
+        self.view.AddActor(text)
+        self.landmark_markers.append((sphere, actor, text))
+
+    def clear_landmark_markers(self):
+        for _, actor, text in self.landmark_markers:
+            self.view.RemoveActor(actor)
+            self.view.RemoveActor(text)
+        self.landmark_markers.clear()
 
     def refresh(self):
         new = self.points if self.original else self.engine.deform(self.c)
-        self.mesh.GetPoints().SetData(numpy_to_vtk(np.ascontiguousarray(new/self.scale), deep=True))
-        self.mesh.SetPolys(triangle_cells(self.faces if self.original else self.faces[self.visible]))
+        self.source.GetPoints().SetData(numpy_to_vtk(np.ascontiguousarray(new/self.scale), deep=True))
+        self.source.Modified()
+        if self.history and not self.original:
+            self.mesh.ShallowCopy(capped_mesh(self.source,self.history))
+        else:
+            self.mesh.ShallowCopy(self.source)
         self.mesh.Modified()
         for key,title,lo,hi in SPECS:
             value = getattr(self.c,key)
@@ -211,76 +319,64 @@ class Studio:
         self.status.SetInput(("Original" if self.original else "Edited") +
                              ("   |   Wings linked" if self.linked else "   |   Wings independent"))
         self.note.SetInput("Selected: "+next(t for k,t,_,_ in SPECS if k==self.selected))
-        self.cut_label.SetInput(f"C   Scalpel   {'ON' if self.scalpel else 'off'}   |   {2*self.radius:g} mm wide")
+        self.cut_label.SetInput(f"C   Scalpel   {'ON' if self.scalpel else 'off'}")
         if self.scalpel:
-            self.note.SetInput("Drag to cut  |  [ ] width  |  Z undo  |  C orbit")
+            self.note.SetInput("Profile view: drag a vertical cut line across the nose. Release to slice.")
         self.window.Render()
 
     def begin_cut(self):
         if self.original:
             self.original=False
             self.refresh()
-        self.stroke=set()
-        self.last_screen=None
-        self.stroke_ids=np.flatnonzero(self.visible)
-        self.centers=vtk_to_numpy(self.mesh.GetPoints().GetData())[self.faces].mean(axis=1)*self.scale
-        self.locator=vtk.vtkStaticCellLocator()
-        self.locator.SetDataSet(self.mesh)
-        self.locator.BuildLocator()
-        self.preview.SetPoints(self.mesh.GetPoints())
+        self.stroke=np.array(self.interactor.GetEventPosition())
+        self.guide_points.SetPoint(0, self.stroke[0], self.stroke[1], 0)
+        self.guide_actor.VisibilityOn()
         self.draw_cut()
 
-    def mark_cut(self,x,y):
-        ray=[]
-        for depth in (0,1):
-            self.view.SetDisplayPoint(x,y,depth)
-            self.view.DisplayToWorld()
-            point=np.array(self.view.GetWorldPoint())
-            ray.append(point[:3]/point[3])
-        t,sub,cell=vtk.reference(0.),vtk.reference(0),vtk.reference(0)
-        hit,params=[0.]*3,[0.]*3
-        if not self.locator.IntersectWithLine(*ray,1e-8,t,hit,params,sub,cell):
-            return
-        seed=int(self.stroke_ids[int(cell)])
-        center=np.array(hit)*self.scale
-        queue=[seed]
-        seen={seed}
-        neighbors=vtk.vtkIdList()
-        while queue:
-            face=queue.pop()
-            self.stroke.add(face)
-            for vertex in self.faces[face]:
-                self.topology.GetPointCells(int(vertex),neighbors)
-                for i in range(neighbors.GetNumberOfIds()):
-                    other=neighbors.GetId(i)
-                    if other in seen:
-                        continue
-                    seen.add(other)
-                    delta=self.centers[other]-center
-                    if self.visible[other] and delta@delta <= self.radius**2:
-                        queue.append(other)
-
     def draw_cut(self):
-        end=np.array(self.interactor.GetEventPosition())
-        if self.interactor.FindPokedRenderer(*end)!=self.view:
-            self.last_screen=None
-            return
-        start=end if self.last_screen is None else self.last_screen
-        steps=max(1,int(np.ceil(np.linalg.norm(end-start)/2)))
-        for fraction in range(1,steps+1):
-            self.mark_cut(*(start+(end-start)*fraction/steps))
-        self.last_screen=end
-        ids=list(self.stroke)
-        self.preview.SetPolys(triangle_cells(self.faces[ids]))
+        x, y = self.interactor.GetEventPosition()
+        self.guide_points.SetPoint(1, x, y, 0)
+        self.guide_points.Modified()
         self.window.Render()
 
+    def world_point(self, pixel, depth):
+        self.view.SetDisplayPoint(*pixel,depth)
+        self.view.DisplayToWorld()
+        point=np.array(self.view.GetWorldPoint())
+        return point[:3]/point[3]
+
     def finish_cut(self):
-        ids=np.array(list(self.stroke),dtype=int)
-        if 0 < len(ids) < self.visible.sum():
-            self.visible[ids]=False
-            self.history.append(ids)
+        start=self.stroke
+        end=np.array(self.interactor.GetEventPosition())
         self.stroke=None
-        self.preview.Initialize()
+        self.guide_actor.VisibilityOff()
+        if np.linalg.norm(end-start)<5:
+            self.note.SetInput("Drag a line at least five pixels long across the profile.")
+            self.window.Render()
+            return
+        origin=self.world_point(start,0)
+        along=self.world_point(end,0)-origin
+        ray=self.world_point(start,1)-origin
+        normal=unit_direction(np.cross(along,ray))
+        center=np.mean(self.raw,axis=0)
+        if (center-origin)@normal<0:
+            normal=-normal
+        # Store the plane near the mesh to keep numerical error small.
+        origin=center-((center-origin)@normal)*normal
+        current=vtk_to_numpy(self.mesh.GetPoints().GetData())
+        signed=(current-origin)@normal
+        if signed.min()<0<signed.max():
+            if has_open_edges(self.mesh):
+                self.note.SetInput("Solid slicing needs a closed mesh. Reopen the uncut sample.")
+                self.window.Render()
+                return
+            candidate=capped_mesh(self.source,self.history+[(origin,normal)])
+            if candidate.GetNumberOfPolys() and not has_open_edges(candidate):
+                self.history.append((origin,normal))
+            else:
+                self.note.SetInput("Could not seal this slice. Shift the line slightly and retry.")
+                self.window.Render()
+                return
         self.refresh()
 
     def select(self,key):
@@ -306,6 +402,20 @@ class Studio:
         cam.ParallelProjectionOn()
         cam.SetParallelScale(110/self.scale)
         self.view.ResetCameraClippingRange()
+        self.window.Render()
+
+    def camera_front_during_landmark_setup(self):
+        center = self.raw.mean(axis=0)
+        span = np.ptp(self.raw, axis=0)
+        distance = max(span) * 3
+        camera = self.view.GetActiveCamera()
+        camera.SetFocalPoint(*center)
+        camera.SetPosition(*(center + np.array([0, 0, distance])))
+        camera.SetViewUp(0, 1, 0)
+        camera.ParallelProjectionOn()
+        camera.SetParallelScale(max(span[1] * .68, distance * .12))
+        self.view.ResetCameraClippingRange()
+        self.note.SetInput("Front view. Click the " + MARKS[0] + ".")
         self.window.Render()
 
     def pick(self):
@@ -336,6 +446,9 @@ class Studio:
                 self.selected = SPECS[row][0]
                 self.move()
             return
+        if self.preview_only:
+            self.style.OnLeftButtonDown()
+            return
         if self.engine and self.scalpel:
             self.begin_cut()
             return
@@ -352,11 +465,13 @@ class Studio:
                 self.refresh()
             else:
                 self.marks.append(point)
+                self.add_landmark_marker(point, len(self.marks))
                 if len(self.marks)==5:
                     try:
                         self.activate()
                     except ValueError:
                         self.marks=[]
+                        self.clear_landmark_markers()
                         self.note.SetInput("Invalid landmarks. Click the "+MARKS[0]+".")
                 else:
                     self.note.SetInput("Click the "+MARKS[len(self.marks)]+". Ctrl-drag to orbit.")
@@ -406,11 +521,8 @@ class Studio:
             self.scalpel=not self.scalpel
             self.pending_bridge=False
             self.refresh()
-        elif key in ('bracketleft','bracketright'):
-            self.radius=float(np.clip(self.radius + (.5 if key=='bracketright' else -.5),.5,16))
-            self.refresh()
         elif key=='z' and self.history:
-            self.visible[self.history.pop()]=True
+            self.history.pop()
             self.original=False
             self.refresh()
         elif key in ('1','2','3'):
@@ -418,6 +530,8 @@ class Studio:
         elif key=='space':
             self.original=not self.original
             self.refresh()
+        elif key=='b' and self.history:
+            self.note.SetInput("Undo the slices before repositioning the bridge.")
         elif key=='b':
             self.scalpel=False
             self.pending_bridge=True
@@ -429,27 +543,30 @@ class Studio:
             else:
                 self.refresh()
         elif key=='r':
-            self.visible[:]=True
             self.history.clear()
             self.c=Controls()
             self.original=False
             self.pending_bridge=False
             self.refresh()
+        elif key=='m':
+            self.clear_landmark_markers()
+            self.engine=None
+            self.marks=[]
+            self.history.clear()
+            self.c=Controls()
+            self.original=False
+            self.scalpel=False
+            self.source.GetPoints().SetData(numpy_to_vtk(self.raw.copy(),deep=True))
+            self.source.Modified()
+            self.mesh.ShallowCopy(self.source)
+            self.status.SetInput("LANDMARK SETUP")
+            self.camera_front_during_landmark_setup()
         elif key=='e':
             path=self.path.with_name(self.path.stem+datetime.now().strftime('-edited-%Y%m%d-%H%M%S-%f.ply'))
             self.original=False
             self.refresh()
             try:
-                output=self.mesh
-                if self.history:
-                    # vtkCleanPolyData removes unused points without merging vertices.
-                    compact=vtk.vtkCleanPolyData()
-                    compact.PointMergingOff()
-                    compact.ConvertPolysToLinesOff()
-                    compact.SetInputData(output)
-                    compact.Update()
-                    output=compact.GetOutput()
-                write_mesh(output,path)
+                write_mesh(self.mesh,path)
                 self.note.SetInput("Saved "+path.name)
             except OSError as error:
                 self.note.SetInput(str(error))
@@ -462,7 +579,7 @@ def unit_direction(direction):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('ply',type=Path,nargs='?',default=HERE/'face.ply')
+    parser.add_argument('ply',metavar='MESH.ply|EXPORT.json',type=Path,nargs='?',default=HERE/'face.ply')
     parser.add_argument('--units',choices=['mm','cm','m'],default='mm')
     args=parser.parse_args()
     try:

@@ -50,16 +50,18 @@ class Nose:
         delta[:, 2] -= c.bridge * bridge_weight
 
         d = v - self.tip
-        tip_weight = falloff(d, [21, 22, 30])
+        # Keep tip operations local so they don't spill into the lower eyelids.
+        tip_weight = falloff(d, [12, 13, 15])
         # Lift the shoulders of the tip while giving the apex zero displacement.
         shoulder = 1 - np.exp(-(d[:, 0] / 4.5) ** 2)
         delta[:, 2] += tip_weight * (c.projection + c.roundness * shoulder)
 
         angle = np.deg2rad(c.rotation) * tip_weight
         cosine, sine = np.cos(angle), np.sin(angle)
+        # Positive values lift the tip, rotating about the center at the base.
         delta[:, 1] += (cosine - 1) * v[:, 1] + sine * v[:, 2]
         delta[:, 2] += -sine * v[:, 1] + (cosine - 1) * v[:, 2]
 
-        delta[:, 0] += c.wing_a * falloff(v - self.a, [14, 15, 18])
-        delta[:, 0] -= c.wing_b * falloff(v - self.b, [14, 15, 18])
+        delta[:, 0] += c.wing_a * falloff(v - self.a, [10, 11, 12])
+        delta[:, 0] -= c.wing_b * falloff(v - self.b, [10, 11, 12])
         return self.points + delta @ self.axes
