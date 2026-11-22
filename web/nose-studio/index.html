@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Nose Studio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2361d1b8'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app">
+      <main id="viewport" aria-label="3D face view">
+        <svg id="cut-guide" aria-hidden="true"><line id="cut-line" /></svg>
+        <p id="note" role="status" aria-live="polite"></p>
+        <div id="loading" hidden>Loading…</div>
+        <div id="drop-hint" hidden>Drop a .json or .ply mesh</div>
+      </main>
+
+      <aside id="panel">
+        <header>
+          <h1>Nose Studio</h1>
+          <p id="status"></p>
+        </header>
+
+        <section aria-labelledby="open-title">
+          <h2 id="open-title">Mesh</h2>
+          <button id="scan-camera" class="primary">Scan with camera</button>
+          <label class="field">
+            <span>Open a sample</span>
+            <select id="sample">
+              <option value="face.ply">Synthetic face (PLY, closed)</option>
+              <option value="face-mesh-1.json">iPhone scan (face-mesh-1.json)</option>
+              <option value="face-mesh.sample.json">Four-vertex sample</option>
+            </select>
+          </label>
+          <div class="row">
+            <label class="button file">
+              Open file…
+              <input id="file" type="file" accept=".json,.ply" />
+            </label>
+            <label class="field compact">
+              <span>PLY units</span>
+              <select id="units">
+                <option value="1">mm</option>
+                <option value="10">cm</option>
+                <option value="1000">m</option>
+              </select>
+            </label>
+          </div>
+          <label class="check"><input id="show-colors" type="checkbox" /> Photo colors</label>
+          <label class="check"><input id="show-marks" type="checkbox" /> Show landmarks</label>
+        </section>
+
+        <section aria-labelledby="edit-title">
+          <h2 id="edit-title">Edit</h2>
+          <div id="sliders"></div>
+        </section>
+
+        <section aria-labelledby="tools-title">
+          <h2 id="tools-title">Tools</h2>
+          <div class="grid">
+            <button data-key="l" id="link">Wings linked</button>
+            <button data-key="b">Move bridge brush</button>
+            <button data-key="c" id="scalpel">Scalpel off</button>
+            <button data-key="z">Undo slice</button>
+            <button data-key=" " id="compare">Before / after</button>
+            <button data-key="r">Reset edits</button>
+            <button data-key="m">Re-pick landmarks</button>
+          </div>
+          <div class="views" role="group" aria-label="Camera">
+            <button data-key="1">Front</button>
+            <button data-key="2">Profile</button>
+            <button data-key="3">Base</button>
+          </div>
+        </section>
+
+        <section aria-labelledby="export-title">
+          <h2 id="export-title">Export</h2>
+          <div class="row">
+            <button id="export-ply" class="primary">Download PLY</button>
+            <button id="export-json">Download JSON</button>
+          </div>
+        </section>
+
+        <footer>
+          <p class="keys">
+            Drag to orbit · scroll to zoom · Shift-drag the face to adjust the selected slider<br />
+            1 Front · 2 Profile · 3 Base · Space before/after · B bridge brush · L link wings<br />
+            C scalpel · Z undo slice · M re-pick landmarks · R reset · E export
+          </p>
+          <p class="disclaimer">Surface sculpting preview. Not a medical measurement or surgical plan.</p>
+        </footer>
+      </aside>
+    </div>
+    <div id="camera" class="dialog" role="dialog" aria-modal="true" aria-labelledby="camera-title" hidden>
+      <div class="camera-card">
+        <h2 id="camera-title">Camera scan</h2>
+        <div class="camera-stage">
+          <video id="camera-video" playsinline muted></video>
+          <canvas id="camera-overlay" aria-hidden="true"></canvas>
+          <div class="camera-oval" aria-hidden="true"></div>
+        </div>
+        <p id="camera-status" role="status" aria-live="polite"></p>
+        <p class="camera-note">Face the camera in even light, keep a relaxed expression, and hold still. This runs on your device and nothing is uploaded. Depth is estimated from the picture, so the side view is less exact than an iPhone scan.</p>
+        <div class="row">
+          <button id="camera-cancel">Cancel</button>
+          <button id="camera-capture" class="primary" disabled>Capture</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

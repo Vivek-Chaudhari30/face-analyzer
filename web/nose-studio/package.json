@@ -1,0 +1,29 @@
+{
+  "name": "nose-studio-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Browser version of Nose Studio: load a face mesh, edit the nose, export.",
+  "type": "module",
+  "scripts": {
+    "samples": "node scripts/copy-samples.mjs",
+    "predev": "npm run samples",
+    "dev": "vite",
+    "prebuild": "npm run samples",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.3",
+    "manifold-3d": "^3.5.5",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}
