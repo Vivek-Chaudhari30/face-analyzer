@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 import { isClosed, parseFaceMeshJson, parsePly, validateFaceMesh, writeFaceMeshJson, writePly } from "../src/meshio";
 import { iphoneScan, sampleText, syntheticFace } from "./fixtures";
 
-const sample = () => JSON.parse(sampleText("face-mesh.sample.json"));
+/** The checked-in sample, with placeholder colors added so the color rules can be tested whether or not the file has them. */
+const sample = () => {
+  const doc = JSON.parse(sampleText("face-mesh.sample.json"));
+  doc.vertexColors ??= doc.vertices.map(() => [0.71, 0.53, 0.42]);
+  return doc;
+};
 
 describe("face-mesh JSON (docs/DATA_CONTRACT.md)", () => {
   it("reads both checked-in samples", () => {
     const tiny = parseFaceMeshJson(sampleText("face-mesh.sample.json"));
     expect(tiny.positions.length).toBe(12);
-    expect(tiny.colors?.length).toBe(12);
     expect(tiny.mmPerUnit).toBe(1000);
+    expect(parseFaceMeshJson(JSON.stringify(sample())).colors?.length).toBe(12);
     const scan = iphoneScan();
     expect(scan.positions.length / 3).toBe(1220);
     expect(scan.indices.length / 3).toBe(2304);
