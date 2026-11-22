@@ -68,10 +68,11 @@ async function openFile(file: File) {
   if (opened) showFileInPicker(file.name);
 }
 
-const camera = new CameraScan(({ doc, summary }) => {
+const camera = new CameraScan(({ doc, summary, eyeColor }) => {
   void open("camera-scan.json", async () => meshDataFromDoc(doc)).then((ok) => {
     if (!ok) return;
     showFileInPicker("camera scan");
+    if (eyeColor) studio.setEyeColor(eyeColor);
     note.textContent = `${summary} Nose landmarks are placed automatically, so you can edit right away.`;
   });
 });

@@ -64,6 +64,9 @@ section { display: flex; flex-direction: column; gap: 10px; }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
 .field.compact { flex: 0 0 auto; }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.eyes-row { align-items: center; justify-content: space-between; }
+#eye-color { width: 34px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; }
+.check:has(input:disabled) { opacity: 0.45; }
 .row { display: flex; gap: 10px; align-items: end; }
 .row > .button, .row > button { flex: 1; }
 

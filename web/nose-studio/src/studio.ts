@@ -18,6 +18,7 @@ import {
   type Vec3,
 } from "./geometry";
 import { fixedLandmarksFor } from "./landmarks";
+import { eyeSurface, findEyes, paintEye, type EyeOpening } from "./eyes";
 import { isClosed, writeFaceMeshJson, writePly, type MeshData } from "./meshio";
 import { loadManifold, sliceMesh, type Plane } from "./slice";
 
@@ -41,6 +42,17 @@ export class Studio {
   private readonly material = new THREE.MeshStandardMaterial({ color: SKIN, roughness: 0.62, metalness: 0, side: THREE.DoubleSide });
   private readonly mesh = new THREE.Mesh(new THREE.BufferGeometry(), this.material);
   private readonly markers = new THREE.Group();
+  private readonly eyes = new THREE.Group();
+  private readonly eyeCanvas = Object.assign(document.createElement("canvas"), { width: 512, height: 512 });
+  private readonly eyeTexture = new THREE.CanvasTexture(this.eyeCanvas);
+  private readonly eyeMaterial = new THREE.MeshPhysicalMaterial({
+    map: this.eyeTexture,
+    roughness: 0.3,
+    clearcoat: 1, // the wet, glossy surface of an eye
+    clearcoatRoughness: 0.06,
+  });
+  private eyeOpenings: [EyeOpening, EyeOpening] | null = null;
+  private eyeColor = "#5a3a22";
   private halfHeight = 110;
 
   private name = "face";
@@ -77,7 +89,9 @@ export class Studio {
     const headlight = new THREE.DirectionalLight(0xffffff, 1.9);
     headlight.position.set(0.3, 0.5, 1);
     this.camera.add(headlight);
-    this.scene.add(this.camera, this.mesh, this.markers);
+    this.scene.add(this.camera, this.mesh, this.markers, this.eyes);
+    this.eyeTexture.colorSpace = THREE.SRGBColorSpace;
+    paintEye(this.eyeCanvas, this.eyeColor);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = false;
@@ -113,6 +127,9 @@ export class Studio {
     colorBox.checked = Boolean(data.colors);
     this.applyColorMode();
     $<HTMLButtonElement>("export-json").disabled = !data.doc;
+    this.eyeOpenings = findEyes(this.base, data.indices);
+    $<HTMLInputElement>("show-eyes").disabled = !this.eyeOpenings;
+    $<HTMLInputElement>("eye-color").disabled = !this.eyeOpenings;
 
     this.engine = null;
     this.marks = [];
@@ -192,7 +209,36 @@ export class Studio {
       this.writePositions(deformed);
       this.setDisplayed(this.baseGeometry);
     }
+    this.updateEyes(deformed);
     this.updatePanel();
+    this.render();
+  }
+
+  /** Fills the two eye openings, following the current (possibly edited) eyelid edges. */
+  private updateEyes(points: Float64Array) {
+    for (const child of [...this.eyes.children]) {
+      (child as THREE.Mesh).geometry.dispose();
+      this.eyes.remove(child);
+    }
+    this.eyes.visible = Boolean(this.eyeOpenings) && $<HTMLInputElement>("show-eyes").checked && !this.sliced;
+    if (!this.eyeOpenings || !this.eyes.visible) return;
+    for (const opening of this.eyeOpenings) {
+      const surface = eyeSurface(opening, points);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(surface.positions, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(surface.uvs, 2));
+      geometry.setIndex(new THREE.BufferAttribute(surface.indices, 1));
+      geometry.computeVertexNormals();
+      this.eyes.add(new THREE.Mesh(geometry, this.eyeMaterial));
+    }
+  }
+
+  /** Iris color for the eyes (#rrggbb). Display only; not saved in exports. */
+  setEyeColor(hex: string) {
+    this.eyeColor = hex;
+    $<HTMLInputElement>("eye-color").value = hex;
+    paintEye(this.eyeCanvas, hex);
+    this.eyeTexture.needsUpdate = true;
     this.render();
   }
 
@@ -238,6 +284,17 @@ export class Studio {
     this.material.vertexColors = useColors;
     this.material.color = useColors ? new THREE.Color(1, 1, 1) : SKIN;
     this.material.needsUpdate = true;
+    // Photo colors carry the room's light, so the face is darker than in studio light. Dim the eyes
+    // gently with the face's average brightness so the whites don't glow against the photo.
+    let eyeLight = 1;
+    if (useColors && this.eyeOpenings && this.data?.colors) {
+      const colors = this.data.colors;
+      let sum = 0;
+      for (let i = 0; i < colors.length; i += 3) sum += 0.2126 * colors[i] + 0.7152 * colors[i + 1] + 0.0722 * colors[i + 2];
+      const face = sum / (colors.length / 3);
+      eyeLight = Math.min(0.95, Math.max(0.65, 0.6 + 0.6 * face));
+    }
+    this.eyeMaterial.color.setRGB(eyeLight, eyeLight, eyeLight, THREE.SRGBColorSpace);
   }
 
   // ---------------------------------------------------------------- scalpel
@@ -629,10 +686,10 @@ export class Studio {
     canvas.addEventListener("pointercancel", finish);
 
     window.addEventListener("keydown", (event) => {
-      const target = event.target as HTMLElement;
+      const target = event.target instanceof Element ? event.target : null; // can be the window itself
       if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (target.matches("input[type=file], select, textarea, input[type=text]")) return;
-      if (target.matches("input[type=range]") && event.key.startsWith("Arrow")) return;
+      if (target?.matches("input[type=file], input[type=color], select, textarea, input[type=text]")) return;
+      if (target?.matches("input[type=range]") && event.key.startsWith("Arrow")) return;
       const key = event.key.toLowerCase();
       if (!"czblrme123 ".includes(key) || key.length !== 1) return;
       if (key === " ") event.preventDefault();
@@ -648,6 +705,8 @@ export class Studio {
       this.render();
     });
     $("show-marks").addEventListener("change", () => this.drawMarkers());
+    $("show-eyes").addEventListener("change", () => this.refreshNow());
+    $("eye-color").addEventListener("input", () => this.setEyeColor($<HTMLInputElement>("eye-color").value));
   }
 
   private drawCut(x: number, y: number) {

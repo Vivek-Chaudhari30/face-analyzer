@@ -5,6 +5,7 @@
  */
 import type { FaceLandmarker, FaceLandmarkerResult, NormalizedLandmark } from "@mediapipe/tasks-vision";
 import { CameraGate, GATE } from "./cameraGate";
+import { sampleIrisColor, toHex } from "./eyes";
 import type { FaceMeshDoc } from "./meshio";
 import { yawBetween, type Vec3 } from "./multiView";
 import { fuseCaptures, toPixelMetric, trianglesFromTessellation, type WebcamCapture } from "./webcamMesh";
@@ -29,6 +30,8 @@ const STEPS: Step[] = [
 export interface CameraResult {
   doc: FaceMeshDoc;
   summary: string;
+  /** Iris color read from the front picture (#rrggbb), when it could be read. */
+  eyeColor?: string;
 }
 
 let landmarker: Promise<{ instance: FaceLandmarker; triangles: number[] }> | null = null;
@@ -68,6 +71,7 @@ export class CameraScan {
   private step = 0;
   private shots: WebcamCapture[] = [];
   private frontPoints: Vec3[] | null = null;
+  private eyeColor: string | undefined;
   private busy = false;
 
   constructor(private readonly onCaptured: (result: CameraResult) => void) {
@@ -85,6 +89,7 @@ export class CameraScan {
     this.dialog.hidden = false;
     this.shots = [];
     this.frontPoints = null;
+    this.eyeColor = undefined;
     this.busy = false;
     this.goTo(0);
     $("camera-cancel").focus();
@@ -208,7 +213,11 @@ export class CameraScan {
         blendShapes: shapesOf(result),
         sampleColor: (px, py) => averageColor(pixels, w, h, px, py),
       });
-      if (this.step === 0) this.frontPoints = toPixelMetric(this.shots[0]);
+      if (this.step === 0) {
+        this.frontPoints = toPixelMetric(this.shots[0]);
+        const iris = sampleIrisColor(landmarks, w, h, (px, py) => averageColor(pixels, w, h, px, py));
+        this.eyeColor = iris ? toHex(iris) : undefined;
+      }
       if (this.step + 1 < STEPS.length) {
         this.goTo(this.step + 1);
         this.say("Got it.");
@@ -235,7 +244,11 @@ export class CameraScan {
       const turns = scan.yaw.slice(1).map((yaw) => `${Math.abs(yaw).toFixed(0)}°`).join(" and ");
       const size = scan.scale.method === "iris" ? "size from the iris" : "size assumed from the eye corners";
       this.close();
-      this.onCaptured({ doc: scan.doc, summary: `Camera scan from ${views}${turns ? `, head turned ${turns}` : ""}; ${size}.` });
+      this.onCaptured({
+        doc: scan.doc,
+        summary: `Camera scan from ${views}${turns ? `, head turned ${turns}` : ""}; ${size}.`,
+        eyeColor: this.eyeColor,
+      });
     } catch (error) {
       this.say((error as Error).message);
       this.busy = false;

@@ -21,12 +21,12 @@ Open the address Vite prints. `npm run dev` and `npm run build` first copy the d
 ## Test
 
 ```sh
-npm test          # 74 Vitest checks
+npm test          # 82 Vitest checks
 npm run build     # typecheck + production build into dist/
 npm run preview   # serve dist/ the way a static host would
 ```
 
-`tests/geometry.test.ts` is a port of `NoseStudio/verify.py`: each edit moves only a local region, the bridge drops by the slider value, rounding keeps the apex fixed, rotation lifts the tip about the base, the wings move independently, and zero edits leave the mesh unchanged. The other tests cover the data-contract checks, JSON and PLY round trips, the fixed ARKit landmarks, solid slicing, the camera-to-mesh conversion, combining several pictures (checked against a known 3D shape), iris sizing, and the camera capture check. One test also checks that `shared/schema/face-mesh.schema.json` and the app accept the same mesh types.
+`tests/geometry.test.ts` is a port of `NoseStudio/verify.py`: each edit moves only a local region, the bridge drops by the slider value, rounding keeps the apex fixed, rotation lifts the tip about the base, the wings move independently, and zero edits leave the mesh unchanged. The other tests cover the data-contract checks, JSON and PLY round trips, the fixed ARKit landmarks, solid slicing, the camera-to-mesh conversion, combining several pictures (checked against a known 3D shape), iris sizing, eyes (finding the openings, a gap-free fill, eye color), and the camera capture check. One test also checks that `shared/schema/face-mesh.schema.json` and the app accept the same mesh types.
 
 ## Deploy
 
@@ -61,6 +61,15 @@ How accurate it is:
 - **Not tested on a stand-in:** the iris sizing, because the rendered face has no real iris. Expect a few millimeters of error. This is fine for a preview, but it is not a medical measurement.
 
 The file format is described under "Webcam captures" in `docs/DATA_CONTRACT.md` (`"topology": "MediaPipeFaceMesh"`).
+
+## Eyes
+
+ARKit and MediaPipe meshes stop at the eyelids, so scans have holes where the eyes are. **Show eyes** (on by default) fills each opening with an eye: white, an iris 11.7 mm across, a pupil and a reflection (`src/eyes.ts`).
+- **Finding the openings:** the app looks for holes in the mesh, which works for any scan. The outer edge is the widest hole, and the eyes are the two highest of the rest, one on each side. For MediaPipe these are exactly the eye contours MediaPipe documents. A closed mesh, such as the synthetic face, gets no eyes.
+- **Fit:** each eye surface meets the eyelid edge exactly, so there's no gap. It dips slightly behind the lids and rises in the middle like a cornea. It follows the eyelids if an edit moves them.
+- **Color:** a camera scan reads your iris color from the front picture. Otherwise the default is brown, and **Eye color** changes it.
+- **Lighting:** with photo colors on, the eyes are dimmed a little to match the photo's lighting.
+- **Display only:** the eyes are not written to exported JSON or PLY files, and they always look straight ahead.
 
 ## What's different from the desktop version
 
@@ -98,6 +107,7 @@ Every key also has a button in the panel.
 | `src/camera.ts` | Camera dialog: the three steps, MediaPipe tracking, capture |
 | `src/cameraGate.ts` | When Capture turns on: one face, facing or turned the right amount, neutral, still |
 | `src/multiView.ts` | Combines front, left and right pictures into one shape |
+| `src/eyes.ts` | Finds the eye openings, builds the eye surfaces, paints the iris, reads eye color |
 | `src/webcamMesh.ts` | MediaPipe landmarks to a contract face mesh (axes, iris sizing, winding, colors) |
 | `src/slice.ts` | Plane slicing with a capped cut (Manifold) |
 | `src/studio.ts` | Scene, camera, picking, sliders, keys, export |
