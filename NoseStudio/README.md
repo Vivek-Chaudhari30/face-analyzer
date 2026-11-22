@@ -53,3 +53,8 @@ From the parent folder containing NoseStudio and face-analyzer:
     python NoseStudio/studio.py face-analyzer/shared/samples/face-mesh.sample.json
 
 Run one command at a time. The importer uses meters automatically, accepts flat triangle indices, checks the declared counts, and reads UVs when present. Expression coefficients have no effect on the imported surface. Mark the five landmarks on the face capture to enable editing. The four-vertex sample opens for inspection. PLY exports from JSON inputs retain meters.
+
+
+# After window opens
+
+Click the outer edges of the two nostril wings, the nose tip, the bridge ridge, and the center where the base of the nose meets the upper lip, in that order.
