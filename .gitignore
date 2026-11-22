@@ -1,6 +1,12 @@
 # macOS
 .DS_Store
 
+# Later captured faces stay off the repo.
+# Checked-in meshes: shared/samples/face-mesh.sample.json and face-mesh-1.json.
+scans/
+ios/exports/
+ios/**/exports/
+
 # Secrets
 .env
 .env.*

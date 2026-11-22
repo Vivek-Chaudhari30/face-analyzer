@@ -11,7 +11,7 @@ Two separate codebases in one repository.
 
 The iPhone app is part one. The website is part two. The web contributor does not open Xcode. The iPhone author does not build the site. They meet only at the JSON file described in `docs/DATA_CONTRACT.md`.
 
-`shared/samples/face-mesh.sample.json` is a four-vertex stand-in so the website can be built before a phone scan exists. It is not a face. Real scans stay out of git.
+`shared/samples/face-mesh.sample.json` is a four-vertex stand-in. It is not a face. `shared/samples/face-mesh-1.json` is the first real phone export: 1,220 vertices, 2,304 triangles, topology `ARFaceGeometry`. Later personal scans stay out of git.
 
 This mesh is for a promo visualization. It is not a medical measurement and it is not a clinical rhinoplasty plan.
 

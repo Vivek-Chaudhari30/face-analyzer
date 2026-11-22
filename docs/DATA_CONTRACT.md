@@ -22,17 +22,20 @@ One scan is one JSON file, UTF-8.
 
 ## Coordinates
 
-ARKit face-local space:
+ARKit face-local space is right-handed. Distances are meters. `0.01` is 1 centimeter.
 
-- Origin is the center of the head.
-- `+x` points toward the right side of the face (the person's right).
-- `+y` points up.
-- `+z` points out of the face, toward the camera.
-- Distances are meters. `0.01` is 1 centimeter.
+- The origin is centered behind the face.
+- `+x` points to the viewer's right, which is the person's left.
+- `+y` points up, relative to the face.
+- `+z` points out of the face, toward the viewer.
 
-A real `ARFaceAnchor.geometry` export keeps the same vertex count and the same triangle indexes across people. Index `40` on one face is the same mesh point as index `40` on another face. Nose edits on the website must move vertices by index, not by searching for nearby points.
+The iPhone exporter copies `ARFaceAnchor.geometry` vertices, texture coordinates, and triangle indexes in that orientation and order. It does not flip an axis to match the mirrored camera preview. In the mirrored preview the person's right eye appears on the right side of the screen. In the exported mesh, the person's left side is on the viewer's right.
 
-The checked-in sample is a four-vertex stand-in so the website can be built before a phone export exists. Its `topology` is `"sample"`. Do not treat it as a face, and do not assume a real scan has four vertices.
+A real `ARFaceAnchor.geometry` export keeps the same vertex count and the same triangle indexes across people. Index `40` on one face is the same mesh point as index `40` on another face. That index is an example of stable topology, not a nose landmark. Nose edits on the website must move vertices by index, not by searching for nearby points.
+
+`shared/samples/face-mesh.sample.json` is a four-vertex stand-in so the website can be built before a phone export exists. Its `topology` is `"sample"`. Do not treat it as a face, and do not assume every file has four vertices.
+
+`shared/samples/face-mesh-1.json` is the first real export from a TrueDepth iPhone. Its `topology` is `"ARFaceGeometry"`, with 1,220 vertices and 2,304 triangles. Those counts are the topology measured on that phone. Later personal scans stay out of git.
 
 ## Example
 
@@ -47,6 +50,19 @@ The checked-in sample is a four-vertex stand-in so the website can be built befo
   "triangleCount": 1
 }
 ```
+
+## Validation
+
+`shared/schema/face-mesh.schema.json` checks field names, types, the fixed `units` and `coordinateSystem` strings, and that `topology` is `ARFaceGeometry` or `sample`. It does not compare one field with another.
+
+The exporter, and any importer, must also reject a file when:
+
+- a vertex, texture coordinate, or blend shape value is not finite
+- `vertexCount` is not `vertices.length`
+- `indices.length` is not divisible by 3
+- `triangleCount` is not `indices.length / 3`
+- an index is outside `0..<vertices.length`
+- `textureCoordinates` is present and its length is not `vertices.length`
 
 ## What this data is
 

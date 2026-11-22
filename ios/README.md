@@ -2,7 +2,9 @@
 
 Owner: the iPhone app author. The web contributor does not edit this folder.
 
-This app captures one face with ARKit and writes a JSON file that matches `docs/DATA_CONTRACT.md`. The Xcode project will live in `ios/FaceScanner/` when it is added. Until then, this folder only documents the boundary.
+This app captures one face with ARKit and writes a JSON file that matches `docs/DATA_CONTRACT.md`. The Xcode project is `ios/FaceScanner/FaceScanner.xcodeproj`. Open it, select a Personal Team, and run it on a TrueDepth iPhone. The Simulator has no TrueDepth camera, so the app shows an unsupported-device screen there.
+
+When the status says Ready, tap Capture, then Share. AirDrop or Save to Files sends `face-mesh.json`. The app writes that file in a temporary directory. Do not commit it.
 
 ## Rules
 

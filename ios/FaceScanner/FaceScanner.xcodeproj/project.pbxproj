@@ -1,0 +1,444 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		27AF9F62BBC716C058E72205 /* FaceScannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A0132E81D69FAE76F02A78 /* FaceScannerApp.swift */; };
+		29E57CC37E8F2C0D7482BD77 /* FaceMeshDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E2345771CF526AE3E1C477 /* FaceMeshDocumentTests.swift */; };
+		463F15EB950177DB2F017309 /* FaceMeshDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F6ED5B4F46851D46C1CA8E /* FaceMeshDocument.swift */; };
+		6AFA195D1D8E879037C821B8 /* FaceCaptureSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D3297A0BEA2B9DBA5D37989 /* FaceCaptureSample.swift */; };
+		93B4E847E2A435EE102D75C8 /* CapturePhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D899944F717920588E6A85 /* CapturePhase.swift */; };
+		95B2D23507A6099096181CF0 /* CaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7D750A65CA06E44AA3E484D /* CaptureController.swift */; };
+		BA184CBF6F5C01EBDFF5BB9D /* FaceCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50F6C013B3B77F547AAE961 /* FaceCameraView.swift */; };
+		BDEED07718047FDDE895FB1C /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D5ADF1435EEE64868754533 /* CaptureView.swift */; };
+		EDB4A0AD397F438672236637 /* CaptureControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3216208415025D43BC0E1E3B /* CaptureControllerTests.swift */; };
+		F5D9EF35F27C2CF5113A6B72 /* NeutralFrameGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4034BB9147EF8C59A134B41E /* NeutralFrameGateTests.swift */; };
+		FF129448C6CF8B13C89BA1CA /* NeutralFrameGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E530AF4C22211DBA7E82B3D /* NeutralFrameGate.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B116C5F20CFA260BF098B5AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2DA72E2A7B200AE011865DF4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4776454A118BFFB134AABE63;
+			remoteInfo = FaceScanner;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0E530AF4C22211DBA7E82B3D /* NeutralFrameGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeutralFrameGate.swift; sourceTree = "<group>"; };
+		2F94E8C70F6AB3B5923D582E /* FaceScanner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FaceScanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3216208415025D43BC0E1E3B /* CaptureControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureControllerTests.swift; sourceTree = "<group>"; };
+		4034BB9147EF8C59A134B41E /* NeutralFrameGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeutralFrameGateTests.swift; sourceTree = "<group>"; };
+		47F6ED5B4F46851D46C1CA8E /* FaceMeshDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshDocument.swift; sourceTree = "<group>"; };
+		64E2345771CF526AE3E1C477 /* FaceMeshDocumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshDocumentTests.swift; sourceTree = "<group>"; };
+		6D3297A0BEA2B9DBA5D37989 /* FaceCaptureSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureSample.swift; sourceTree = "<group>"; };
+		8D5ADF1435EEE64868754533 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
+		A50F6C013B3B77F547AAE961 /* FaceCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCameraView.swift; sourceTree = "<group>"; };
+		C1D899944F717920588E6A85 /* CapturePhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePhase.swift; sourceTree = "<group>"; };
+		DA3F2F8FA19871F6095F6C16 /* FaceScannerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FaceScannerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E9A0132E81D69FAE76F02A78 /* FaceScannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceScannerApp.swift; sourceTree = "<group>"; };
+		F7D750A65CA06E44AA3E484D /* CaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureController.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		00FAADF8873A4915CBD9D314 /* FaceScannerTests */ = {
+			isa = PBXGroup;
+			children = (
+				3216208415025D43BC0E1E3B /* CaptureControllerTests.swift */,
+				64E2345771CF526AE3E1C477 /* FaceMeshDocumentTests.swift */,
+				4034BB9147EF8C59A134B41E /* NeutralFrameGateTests.swift */,
+			);
+			path = FaceScannerTests;
+			sourceTree = "<group>";
+		};
+		816D783BEFFACA0385960F0C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2F94E8C70F6AB3B5923D582E /* FaceScanner.app */,
+				DA3F2F8FA19871F6095F6C16 /* FaceScannerTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		91F317B6AA891D2D66197309 = {
+			isa = PBXGroup;
+			children = (
+				E2A3ED10977A40AA7273C29B /* FaceScanner */,
+				00FAADF8873A4915CBD9D314 /* FaceScannerTests */,
+				816D783BEFFACA0385960F0C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E2A3ED10977A40AA7273C29B /* FaceScanner */ = {
+			isa = PBXGroup;
+			children = (
+				F7D750A65CA06E44AA3E484D /* CaptureController.swift */,
+				C1D899944F717920588E6A85 /* CapturePhase.swift */,
+				8D5ADF1435EEE64868754533 /* CaptureView.swift */,
+				A50F6C013B3B77F547AAE961 /* FaceCameraView.swift */,
+				6D3297A0BEA2B9DBA5D37989 /* FaceCaptureSample.swift */,
+				47F6ED5B4F46851D46C1CA8E /* FaceMeshDocument.swift */,
+				E9A0132E81D69FAE76F02A78 /* FaceScannerApp.swift */,
+				0E530AF4C22211DBA7E82B3D /* NeutralFrameGate.swift */,
+			);
+			path = FaceScanner;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		37095CB3A4233C5553C121A3 /* FaceScannerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5B4BD0166D9A769C7F730D78 /* Build configuration list for PBXNativeTarget "FaceScannerTests" */;
+			buildPhases = (
+				D495863F8D360CB1690622B3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				612221E443747242FA6BBD31 /* PBXTargetDependency */,
+			);
+			name = FaceScannerTests;
+			packageProductDependencies = (
+			);
+			productName = FaceScannerTests;
+			productReference = DA3F2F8FA19871F6095F6C16 /* FaceScannerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4776454A118BFFB134AABE63 /* FaceScanner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 32DEA3B4CC0D3BF29DA2F158 /* Build configuration list for PBXNativeTarget "FaceScanner" */;
+			buildPhases = (
+				15AD6900711C959D12495ACE /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FaceScanner;
+			packageProductDependencies = (
+			);
+			productName = FaceScanner;
+			productReference = 2F94E8C70F6AB3B5923D582E /* FaceScanner.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2DA72E2A7B200AE011865DF4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					4776454A118BFFB134AABE63 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = F1803BF5A56A4B10EADA24CB /* Build configuration list for PBXProject "FaceScanner" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 91F317B6AA891D2D66197309;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 816D783BEFFACA0385960F0C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4776454A118BFFB134AABE63 /* FaceScanner */,
+				37095CB3A4233C5553C121A3 /* FaceScannerTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		15AD6900711C959D12495ACE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				95B2D23507A6099096181CF0 /* CaptureController.swift in Sources */,
+				93B4E847E2A435EE102D75C8 /* CapturePhase.swift in Sources */,
+				BDEED07718047FDDE895FB1C /* CaptureView.swift in Sources */,
+				BA184CBF6F5C01EBDFF5BB9D /* FaceCameraView.swift in Sources */,
+				6AFA195D1D8E879037C821B8 /* FaceCaptureSample.swift in Sources */,
+				463F15EB950177DB2F017309 /* FaceMeshDocument.swift in Sources */,
+				27AF9F62BBC716C058E72205 /* FaceScannerApp.swift in Sources */,
+				FF129448C6CF8B13C89BA1CA /* NeutralFrameGate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D495863F8D360CB1690622B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EDB4A0AD397F438672236637 /* CaptureControllerTests.swift in Sources */,
+				29E57CC37E8F2C0D7482BD77 /* FaceMeshDocumentTests.swift in Sources */,
+				F5D9EF35F27C2CF5113A6B72 /* NeutralFrameGateTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		612221E443747242FA6BBD31 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4776454A118BFFB134AABE63 /* FaceScanner */;
+			targetProxy = B116C5F20CFA260BF098B5AD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4F88BAD7C102C012E0000859 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vivekchaudhari.facescanner.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FaceScanner.app/FaceScanner";
+			};
+			name = Debug;
+		};
+		50B44E5429019240CAE1AD62 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_PREVIEWS = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "Face Analyzer";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Face Analyzer uses the front camera to build a 3D face mesh for a cosmetic preview.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vivekchaudhari.facescanner;
+				PRODUCT_NAME = FaceScanner;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5834DF2977CF6590ABB5F7B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vivekchaudhari.facescanner.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FaceScanner.app/FaceScanner";
+			};
+			name = Release;
+		};
+		9B995DE30881C1159807CD85 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		BA291CD0D80E5E30CA15022E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		EB6EC96D795B55746D0AD356 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_PREVIEWS = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "Face Analyzer";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Face Analyzer uses the front camera to build a 3D face mesh for a cosmetic preview.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vivekchaudhari.facescanner;
+				PRODUCT_NAME = FaceScanner;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		32DEA3B4CC0D3BF29DA2F158 /* Build configuration list for PBXNativeTarget "FaceScanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EB6EC96D795B55746D0AD356 /* Debug */,
+				50B44E5429019240CAE1AD62 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5B4BD0166D9A769C7F730D78 /* Build configuration list for PBXNativeTarget "FaceScannerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4F88BAD7C102C012E0000859 /* Debug */,
+				5834DF2977CF6590ABB5F7B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F1803BF5A56A4B10EADA24CB /* Build configuration list for PBXProject "FaceScanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B995DE30881C1159807CD85 /* Debug */,
+				BA291CD0D80E5E30CA15022E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 2DA72E2A7B200AE011865DF4 /* Project object */;
+}
