@@ -64,10 +64,10 @@ The file format is described under "Webcam captures" in `docs/DATA_CONTRACT.md` 
 
 ## Eyes
 
-ARKit and MediaPipe meshes stop at the eyelids, so scans have holes where the eyes are. **Show eyes** (on by default) fills each opening with an eye: white, an iris 11.7 mm across, a pupil and a reflection (`src/eyes.ts`).
+ARKit and MediaPipe meshes stop at the eyelids, so scans have holes where the eyes are. The **Eyes** switch (on by default) fills each opening with an eye: white, an iris 11.7 mm across, a pupil and a reflection (`src/eyes.ts`).
 - **Finding the openings:** the app looks for holes in the mesh, which works for any scan. The outer edge is the widest hole, and the eyes are the two highest of the rest, one on each side. For MediaPipe these are exactly the eye contours MediaPipe documents. A closed mesh, such as the synthetic face, gets no eyes.
 - **Fit:** each eye surface meets the eyelid edge exactly, so there's no gap. It dips slightly behind the lids and rises in the middle like a cornea. It follows the eyelids if an edit moves them.
-- **Color:** a camera scan reads your iris color from the front picture. Otherwise the default is brown, and **Eye color** changes it.
+- **Color:** a camera scan reads your iris color from the front picture. Otherwise the default is brown, and the color dot next to the switch changes it.
 - **Lighting:** with photo colors on, the eyes are dimmed a little to match the photo's lighting.
 - **Display only:** the eyes are not written to exported JSON or PLY files, and they always look straight ahead.
 
@@ -80,6 +80,14 @@ ARKit and MediaPipe meshes stop at the eyelids, so scans have holes where the ey
 - **Open any file.** Use Open file, or drag a `.json` or `.ply` onto the view. PLY units can be mm, cm or m.
 
 Same as before: the sliders and their ranges, Shift-drag on the face, before/after, the three camera presets, moving the bridge brush, and the scalpel. The scalpel still needs a closed mesh, so it works on the synthetic face but not on iPhone or camera scans, which are open surfaces.
+
+## Layout
+
+- **Top bar:** where the face comes from (Scan with camera, Open file, or a sample) and Export.
+- **Stage:** the 3D face, with Front / Side / Below views at the top left and Before / After at the bottom. A step guide appears at the top when the app needs clicks, for example to place the nose points.
+- **Panel:** the nose controls, grouped as Bridge, Tip and Nostrils. Nostrils move together unless you turn off "Both together". Double-click a slider to reset it. Display switches sit below. Advanced tools are under More tools: moving the bridge area, placing the nose points again, cut and undo cut, .ply units, and keyboard shortcuts.
+
+The design uses one accent color, gentian violet, the color of the skin marker surgeons draw with. It marks slider strokes, nose points, the cut line and the Before / After switch. The font is Instrument Sans, bundled with the site. Icons are Lucide.
 
 ## Keys
 

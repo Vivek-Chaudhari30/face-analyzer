@@ -22,8 +22,8 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { name: "Front", hint: "Look straight at the camera." },
-  { name: "Left", hint: "Turn your head to your left, about a third of the way, and keep looking past the camera.", turn: "left" },
+  { name: "Front", hint: "Look straight at the camera and hold still." },
+  { name: "Left", hint: "Turn your head to your left, about a third of the way, and hold still.", turn: "left" },
   { name: "Right", hint: "Now turn your head to your right, about a third of the way.", turn: "right" },
 ];
 
@@ -134,7 +134,7 @@ export class CameraScan {
     this.step = step;
     this.gate.reset();
     const current = STEPS[step];
-    this.hint.textContent = `Step ${step + 1} of ${STEPS.length}: ${current.hint}`;
+    this.hint.textContent = current.hint;
     this.captureButton.textContent = `Capture ${current.name.toLowerCase()}`;
     this.captureButton.disabled = true;
     this.frontOnlyButton.hidden = step === 0;
@@ -240,13 +240,12 @@ export class CameraScan {
     try {
       const { triangles } = await loadLandmarker();
       const scan = fuseCaptures(this.shots, triangles);
-      const views = this.shots.length === 1 ? "1 picture (front only, depth estimated)" : `${this.shots.length} pictures`;
-      const turns = scan.yaw.slice(1).map((yaw) => `${Math.abs(yaw).toFixed(0)}°`).join(" and ");
-      const size = scan.scale.method === "iris" ? "size from the iris" : "size assumed from the eye corners";
+      const views = this.shots.length === 1 ? "Camera scan from the front only, so the side profile is estimated." : `Camera scan from ${this.shots.length} pictures.`;
+      const size = scan.scale.method === "iris" ? "Size set from your iris." : "Size estimated from your eye spacing.";
       this.close();
       this.onCaptured({
         doc: scan.doc,
-        summary: `Camera scan from ${views}${turns ? `, head turned ${turns}` : ""}; ${size}.`,
+        summary: `${views} ${size}`,
         eyeColor: this.eyeColor,
       });
     } catch (error) {
@@ -257,6 +256,7 @@ export class CameraScan {
 
   private say(message: string) {
     this.status.textContent = message;
+    this.status.dataset.ready = String(message.startsWith("Ready"));
   }
 }
 

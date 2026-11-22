@@ -1,10 +1,13 @@
+import "@fontsource-variable/instrument-sans";
 import "./style.css";
+import { renderIcons } from "./icons";
 import type { Vec3 } from "./geometry";
 import { CameraScan } from "./camera";
 import { meshDataFromDoc, parseFaceMeshJson, parsePly, type MeshData } from "./meshio";
 import { Studio } from "./studio";
 
 const studio = new Studio();
+renderIcons();
 const loading = document.getElementById("loading")!;
 const note = document.getElementById("note")!;
 const sample = document.getElementById("sample") as HTMLSelectElement;
@@ -13,6 +16,15 @@ const fileInput = document.getElementById("file") as HTMLInputElement;
 const viewport = document.getElementById("viewport")!;
 const dropHint = document.getElementById("drop-hint")!;
 
+let noteTimer = 0;
+/** Shows a message on the stage for a few seconds. */
+function setNote(text: string) {
+  clearTimeout(noteTimer);
+  note.textContent = text;
+  note.classList.remove("faded");
+  noteTimer = window.setTimeout(() => note.classList.add("faded"), 7000);
+}
+
 async function open(name: string, read: () => Promise<MeshData>, landmarks?: () => Promise<Vec3[]>): Promise<boolean> {
   loading.hidden = false;
   try {
@@ -20,7 +32,7 @@ async function open(name: string, read: () => Promise<MeshData>, landmarks?: () 
     studio.load(data, name, marks);
     return true;
   } catch (error) {
-    note.textContent = `Could not open ${name}: ${(error as Error).message}`;
+    setNote(`Couldn't open ${name}. ${(error as Error).message}`);
     return false;
   } finally {
     loading.hidden = true;
@@ -55,7 +67,7 @@ function showFileInPicker(name: string) {
     option.disabled = true;
     sample.prepend(option);
   }
-  option.textContent = `Your file: ${name}`;
+  option.textContent = name;
   option.selected = true;
 }
 
@@ -64,16 +76,16 @@ async function openFile(file: File) {
   let opened = false;
   if (lower.endsWith(".json")) opened = await open(file.name, async () => parseFaceMeshJson(await file.text()));
   else if (lower.endsWith(".ply")) opened = await open(file.name, async () => parsePly(await file.arrayBuffer(), Number(units.value)));
-  else note.textContent = "Open a face-mesh .json or a triangle .ply file.";
+  else setNote("Choose a face scan (.json) or a 3D model (.ply).");
   if (opened) showFileInPicker(file.name);
 }
 
 const camera = new CameraScan(({ doc, summary, eyeColor }) => {
   void open("camera-scan.json", async () => meshDataFromDoc(doc)).then((ok) => {
     if (!ok) return;
-    showFileInPicker("camera scan");
+    showFileInPicker("Your camera scan");
     if (eyeColor) studio.setEyeColor(eyeColor);
-    note.textContent = `${summary} Nose landmarks are placed automatically, so you can edit right away.`;
+    setNote(`${summary} Ready to edit.`);
   });
 });
 document.getElementById("scan-camera")!.addEventListener("click", () => void camera.open());

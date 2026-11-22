@@ -28,13 +28,51 @@ const srgbToLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1
 
 type ViewKey = "1" | "2" | "3";
 
+const mm = (v: number) => `${v.toFixed(1)} mm`;
+const signed = (unit: string, digits = 1) => (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(digits)}${unit}`;
+
+/** The five nose points, in the words the step guide uses. Left and right are as seen on screen. */
+const GUIDE_STEPS = [
+  "Click the outer edge of the left nostril",
+  "Click the outer edge of the right nostril",
+  "Click the tip of the nose",
+  "Click the middle of the bridge",
+  "Click where the nose meets the upper lip",
+];
+
+/** The sliders as people think about them: bridge, tip, nostrils. Ranges come from CONTROL_SPECS. */
+const SLIDER_GROUPS: { title: string; items: { key: ControlKey; label: string; help: string; format: (v: number) => string }[] }[] = [
+  {
+    title: "Bridge",
+    items: [
+      { key: "bridge", label: "Lower the bridge", help: "Smooths a bump by pressing the bridge in.", format: mm },
+      { key: "width", label: "Area size", help: "How wide the bridge change spreads.", format: (v) => `${v.toFixed(0)} mm` },
+    ],
+  },
+  {
+    title: "Tip",
+    items: [
+      { key: "projection", label: "Projection", help: "Moves the tip forward or back.", format: signed(" mm") },
+      { key: "rotation", label: "Lift", help: "Turns the tip up or down.", format: signed("°", 0) },
+      { key: "roundness", label: "Fullness", help: "Rounds out the sides of the tip.", format: mm },
+    ],
+  },
+  {
+    title: "Nostrils",
+    items: [
+      { key: "wingA", label: "Narrow left", help: "Pulls the nostril in. Left as seen in the front view.", format: mm },
+      { key: "wingB", label: "Narrow right", help: "Pulls the nostril in. Right as seen in the front view.", format: mm },
+    ],
+  },
+];
+
 export class Studio {
   private readonly viewport = $<HTMLElement>("viewport");
   private readonly note = $<HTMLParagraphElement>("note");
   private readonly status = $<HTMLParagraphElement>("status");
   private readonly cutLine = document.getElementById("cut-line") as unknown as SVGLineElement;
 
-  private readonly renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  private readonly renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
   private readonly labels = new CSS2DRenderer();
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 5000);
@@ -80,13 +118,14 @@ export class Studio {
 
   constructor() {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    this.renderer.setClearColor(0x1b2529);
+    this.renderer.setClearColor(0x000000, 0); // the stage background shows through (CSS)
     this.viewport.prepend(this.renderer.domElement);
     this.labels.domElement.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:1";
     this.viewport.append(this.labels.domElement);
 
-    this.scene.add(new THREE.HemisphereLight(0xf2f6ff, 0x30302c, 1.1));
-    const headlight = new THREE.DirectionalLight(0xffffff, 1.9);
+    // Soft, bright studio light for the pale stage: sky fill, warm bounce, and a key light that follows the camera.
+    this.scene.add(new THREE.HemisphereLight(0xf6f8ff, 0x8a7f78, 1.6));
+    const headlight = new THREE.DirectionalLight(0xffffff, 2.1);
     headlight.position.set(0.3, 0.5, 1);
     this.camera.add(headlight);
     this.scene.add(this.camera, this.mesh, this.markers, this.eyes);
@@ -145,13 +184,13 @@ export class Studio {
       this.say(
         fixed && !landmarksMm
           ? data.doc?.topology === "MediaPipeFaceMesh"
-            ? "Camera scan: nose landmarks are fixed MediaPipe vertex numbers, so you can edit right away."
-            : "iPhone scan: nose landmarks come from ARKit's fixed vertex numbers, so you can edit right away."
-          : "Drag a slider, or Shift-drag the face to adjust the selected one.",
+            ? "Camera scan ready. The nose points were placed for you."
+            : "iPhone scan ready. The nose points were placed for you."
+          : "Move a slider to reshape the nose. Drag the face to turn it.",
       );
     } else if (this.previewOnly) {
       this.frameWholeMesh();
-      this.say("Drag to orbit. This sample has too few vertices for nose editing.");
+      this.say("This test shape is too simple to edit. Drag to turn it.");
     } else {
       this.startLandmarkSetup();
     }
@@ -179,13 +218,14 @@ export class Studio {
     $<HTMLInputElement>("show-marks").checked = true;
     this.drawMarkers();
     this.frameWholeMesh();
-    this.say(`Landmark setup. Click the ${LANDMARK_NAMES[0]}. Drag to orbit.`);
+    this.say("This face needs five nose points before you can edit. Drag to turn the face.");
   }
 
   // ---------------------------------------------------------------- editing
 
   private adjust(key: ControlKey, value: number) {
     this.selected = key;
+    this.touched = true;
     this.original = false;
     this.c[key] = value;
     if (this.linked && (key === "wingA" || key === "wingB")) this.c.wingA = this.c.wingB = value;
@@ -305,7 +345,7 @@ export class Studio {
       return;
     }
     if (!this.closed) {
-      this.say("Solid slicing needs a closed mesh. iPhone scans are open surfaces; try the synthetic face.");
+      this.say("Cutting needs a closed 3D model. Scans are open surfaces, so try the sample face.");
       return;
     }
     const unproject = (p: { x: number; y: number }, depth: number): Vec3 => {
@@ -339,10 +379,10 @@ export class Studio {
       else if (s > 0) above = true;
     }
     if (!(below && above)) {
-      this.say("That line missed the mesh. Drag across the nose.");
+      this.say("That line missed the face. Drag it across the nose.");
       return;
     }
-    this.say("Slicing…");
+    this.say("Cutting…");
     try {
       const wasm = await loadManifold(wasmUrl);
       const deformed = this.engine && !this.original ? this.engine.deform(this.c) : this.base;
@@ -350,7 +390,7 @@ export class Studio {
       if (!isClosed(cut.indices)) throw new Error("Could not seal this slice. Shift the line slightly and retry.");
       this.history.push(plane);
       this.original = false;
-      this.say(`Sliced. ${this.history.length} cut${this.history.length > 1 ? "s" : ""}. Z undoes the last one.`);
+      this.say("Cut made. Use Undo cut to take it back.");
       this.refreshNow();
     } catch (error) {
       this.say((error as Error).message);
@@ -370,8 +410,11 @@ export class Studio {
 
   // ---------------------------------------------------------------- camera
 
+  private currentView: ViewKey | null = null;
+
   private view(key: ViewKey) {
     if (!this.engine) return;
+    this.currentView = key;
     const [x, y, z] = this.engine.axes.map((a) => new THREE.Vector3(...a));
     const [direction, up] = {
       "1": [z, y],
@@ -380,6 +423,7 @@ export class Studio {
     }[key];
     const center = new THREE.Vector3(...this.engine.origin).addScaledVector(y, 10);
     this.place(center, direction.clone().normalize(), up, 110, 380);
+    this.updatePanel();
   }
 
   private frameWholeMesh() {
@@ -446,20 +490,20 @@ export class Studio {
       this.engine.bridge = this.engine.toLocal(point);
       this.pendingBridge = false;
       this.selected = "bridge";
-      this.say("Bridge brush moved.");
+      this.say("Bridge area moved.");
       this.refreshNow();
       return;
     }
     this.marks.push(point);
     this.drawMarkers();
     if (this.marks.length < 5) {
-      this.say(`Click the ${LANDMARK_NAMES[this.marks.length]}. Drag to orbit.`);
+      this.say("Drag to turn the face if a point is hard to reach.");
     } else if (this.tryActivate(this.marks)) {
-      this.say("Landmarks set. Drag a slider, or Shift-drag the face.");
+      this.say("Nose points placed. Move a slider to reshape the nose.");
     } else {
       this.marks = [];
       this.drawMarkers();
-      this.say(`Those landmarks overlap. Click the ${LANDMARK_NAMES[0]} again.`);
+      this.say("Those points are too close together. Start again with the left nostril.");
     }
     this.refreshNow();
   }
@@ -477,7 +521,7 @@ export class Studio {
     const radius = Math.min(1.6, (this.baseGeometry.boundingSphere?.radius ?? 100) * 0.03);
     const sphere = new THREE.SphereGeometry(radius, 16, 10);
     this.marks.forEach((mark, i) => {
-      const dot = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ color: i < 2 ? 0x33d9e6 : 0xf2bf33, depthTest: false }));
+      const dot = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ color: 0x5b34c9, depthTest: false }));
       dot.renderOrder = 2;
       dot.position.set(...mark);
       const tag = document.createElement("div");
@@ -503,8 +547,8 @@ export class Studio {
     const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     let blob: Blob;
     if (format === "json") {
-      if (!this.data.doc) return this.say("JSON export is for iPhone face-mesh files. Use PLY for this mesh.");
-      if (this.sliced) return this.say("A sliced mesh no longer matches the ARKit topology. Undo slices or export PLY.");
+      if (!this.data.doc) return this.say("Face scan export is for iPhone and camera scans. Export this one as a 3D model (.ply).");
+      if (this.sliced) return this.say("A cut model can't be saved as a face scan. Undo the cuts, or export a 3D model (.ply).");
       blob = new Blob([writeFaceMeshJson(this.data.doc, fileUnits)], { type: "application/json" });
     } else {
       const indices = shown.getIndex()!.array;
@@ -515,63 +559,151 @@ export class Studio {
     const link = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name });
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    this.say(`Saved ${name}${this.data.mmPerUnit === 1000 ? " (meters, same as the input)" : ""}.`);
+    this.say(`Exported ${name}`);
+    document.querySelector<HTMLDetailsElement>(".export-menu")?.removeAttribute("open");
   }
 
   // ---------------------------------------------------------------- UI
 
   private buildSliders() {
     const host = $<HTMLDivElement>("sliders");
-    for (const spec of CONTROL_SPECS) {
-      const row = document.createElement("div");
-      row.className = "slider";
-      row.dataset.key = spec.key;
-      row.innerHTML = `<label for="s-${spec.key}"><span>${spec.title}</span><output></output></label>
-        <input id="s-${spec.key}" type="range" min="${spec.min}" max="${spec.max}" step="0.1" />`;
-      const input = row.querySelector("input")!;
-      input.addEventListener("input", () => this.adjust(spec.key, Number(input.value)));
-      input.addEventListener("focus", () => {
-        this.selected = spec.key;
-        this.updatePanel();
-      });
-      host.append(row);
+    for (const group of SLIDER_GROUPS) {
+      const section = document.createElement("section");
+      section.className = "group";
+      section.setAttribute("aria-label", group.title);
+      const head = document.createElement("div");
+      head.className = "group-head";
+      head.innerHTML = `<h2>${group.title}</h2>`;
+      if (group.title === "Nostrils") {
+        const link = document.createElement("button");
+        link.id = "link";
+        link.className = "link-toggle";
+        link.dataset.key = "l";
+        link.title = "Move both nostrils together (L)";
+        link.innerHTML = `<i data-lucide="link"></i><span>Both together</span>`;
+        head.append(link);
+      }
+      section.append(head);
+      for (const item of group.items) {
+        const spec = CONTROL_SPECS.find((s) => s.key === item.key)!;
+        const row = document.createElement("div");
+        row.className = "slider";
+        row.dataset.key = spec.key;
+        row.title = item.help;
+        row.innerHTML = `<label for="s-${spec.key}"><span class="slider-name">${item.label}</span><output for="s-${spec.key}"></output></label>
+          <input id="s-${spec.key}" type="range" min="${spec.min}" max="${spec.max}" step="0.1" aria-describedby="s-${spec.key}-help" />
+          <span id="s-${spec.key}-help" class="visually-hidden">${item.help} Double-click to reset.</span>`;
+        const input = row.querySelector("input")!;
+        input.addEventListener("input", () => this.adjust(spec.key, Number(input.value)));
+        row.addEventListener("dblclick", () => this.adjust(spec.key, defaultControls()[spec.key])); // double-click resets
+        input.addEventListener("focus", () => {
+          this.selected = spec.key;
+          this.updatePanel();
+        });
+        section.append(row);
+      }
+      host.append(section);
     }
   }
 
   private updatePanel() {
-    for (const spec of CONTROL_SPECS) {
-      const row = document.querySelector<HTMLDivElement>(`.slider[data-key="${spec.key}"]`)!;
-      const input = row.querySelector("input")!;
-      if (document.activeElement !== input || Number(input.value) !== this.c[spec.key]) input.value = String(this.c[spec.key]);
-      row.querySelector("output")!.textContent = this.c[spec.key].toFixed(1);
-      row.classList.toggle("selected", spec.key === this.selected);
+    for (const group of SLIDER_GROUPS) {
+      for (const item of group.items) {
+        const spec = CONTROL_SPECS.find((s) => s.key === item.key)!;
+        const row = document.querySelector<HTMLDivElement>(`.slider[data-key="${spec.key}"]`)!;
+        const input = row.querySelector("input")!;
+        const value = this.c[spec.key];
+        if (document.activeElement !== input || Number(input.value) !== value) input.value = String(value);
+        const output = row.querySelector("output")!;
+        output.textContent = item.format(value);
+        output.classList.toggle("zero", value === defaultControls()[spec.key]);
+        // Fill the track from zero (or from the minimum) to the value, like a marker stroke.
+        const pct = (v: number) => ((v - spec.min) / (spec.max - spec.min)) * 100;
+        const from = Math.min(pct(Math.max(spec.min, Math.min(0, spec.max))), pct(value));
+        const to = Math.max(pct(Math.max(spec.min, Math.min(0, spec.max))), pct(value));
+        input.style.setProperty("--fill", `linear-gradient(to right, transparent ${from}%, var(--violet) ${from}%, var(--violet) ${to}%, transparent ${to}%)`);
+        row.classList.toggle("selected", this.touched && spec.key === this.selected);
+      }
     }
+    // Linked nostrils show one slider for both sides.
+    const wingA = document.querySelector<HTMLDivElement>('.slider[data-key="wingA"]')!;
+    wingA.querySelector(".slider-name")!.textContent = this.linked ? "Narrow both" : "Narrow left";
+    document.querySelector<HTMLDivElement>('.slider[data-key="wingB"]')!.hidden = this.linked;
+
     const editing = Boolean(this.engine);
     $<HTMLDivElement>("sliders").classList.toggle("disabled", !editing);
     document.querySelectorAll<HTMLButtonElement>("button[data-key]").forEach((button) => {
-      button.disabled = !editing;
+      button.disabled = !editing && button.dataset.key !== "m";
     });
-    $("link").textContent = this.linked ? "Wings linked" : "Wings independent";
-    $("link").classList.toggle("on", this.linked);
-    $("scalpel").textContent = `Scalpel ${this.scalpel ? "on" : "off"}`;
-    $("scalpel").classList.toggle("on", this.scalpel);
-    $("compare").classList.toggle("on", this.original);
+    (document.querySelector('button[data-key="m"]') as HTMLButtonElement).disabled = this.previewOnly || !this.data;
+    (document.querySelector('button[data-key="z"]') as HTMLButtonElement).disabled = !this.history.length;
+    $("link").setAttribute("aria-pressed", String(this.linked));
+    $("scalpel").setAttribute("aria-pressed", String(this.scalpel));
+    document.querySelectorAll<HTMLButtonElement>(".segmented button").forEach((button) => {
+      button.setAttribute("aria-pressed", String(editing && button.dataset.key === this.currentView));
+    });
+    $("compare-before").setAttribute("aria-pressed", String(this.original));
+    $("compare-after").setAttribute("aria-pressed", String(!this.original));
+    $<HTMLButtonElement>("compare-before").disabled = !editing;
+    $<HTMLButtonElement>("compare-after").disabled = !editing;
     this.viewport.classList.toggle("scalpel", this.scalpel);
-    this.viewport.classList.toggle("picking", !this.engine || this.pendingBridge);
+    this.viewport.classList.toggle("picking", (!this.engine && !this.previewOnly) || this.pendingBridge);
     this.controls.enabled = !this.scalpel;
 
-    const vertices = (this.data?.positions.length ?? 0) / 3;
-    const parts = [
-      this.previewOnly ? "Sample geometry" : !this.engine ? `Landmark setup (${this.marks.length}/5)` : this.original ? "Original" : "Edited",
-      `${vertices.toLocaleString()} vertices`,
-    ];
-    if (this.engine) parts.push(this.linked ? "wings linked" : "wings independent");
-    if (this.history.length) parts.push(`${this.history.length} slice${this.history.length > 1 ? "s" : ""}`);
-    this.status.textContent = parts.join(" · ");
+    // Landmark setup: a step guide on the stage.
+    const setup = !this.engine && !this.previewOnly && Boolean(this.data);
+    $("guide").hidden = !setup && !this.pendingBridge && !this.scalpel;
+    if (setup) {
+      $("guide-dots").hidden = false;
+      document.querySelectorAll("#guide-dots li").forEach((dot, i) => {
+        dot.classList.toggle("done", i < this.marks.length);
+        dot.classList.toggle("current", i === this.marks.length);
+      });
+      $("guide-text").textContent = GUIDE_STEPS[Math.min(this.marks.length, 4)];
+    } else if (this.pendingBridge) {
+      $("guide-dots").hidden = true;
+      $("guide-text").textContent = "Click where the bridge change should center";
+    } else if (this.scalpel) {
+      $("guide-dots").hidden = true;
+      $("guide-text").textContent = this.closed ? "Drag a line across the nose, then let go to cut" : "Cutting needs a closed 3D model. Scans are open surfaces";
+    }
+
+    this.status.textContent = this.previewOnly
+      ? "This test shape is too simple to edit. Turn it to inspect it."
+      : !this.data
+        ? "Loading…"
+        : !this.engine
+          ? `Place the nose points to start (${this.marks.length} of 5)`
+          : this.original
+            ? "Showing the original face"
+            : this.history.length
+              ? `Edited, with ${this.history.length} cut${this.history.length > 1 ? "s" : ""}`
+              : this.isEdited()
+                ? "Edited. Use Before and After to compare"
+                : "Move a slider to start";
   }
 
+  private setOriginal(original: boolean) {
+    if (!this.engine || this.original === original) return;
+    this.original = original;
+    this.refreshNow();
+  }
+
+  private isEdited() {
+    const d = defaultControls();
+    return (Object.keys(d) as ControlKey[]).some((k) => this.c[k] !== d[k]);
+  }
+
+  private noteTimer = 0;
+  /** Highlight the selected slider only once someone has used one. */
+  private touched = false;
+
+  /** Shows a short message on the stage. It fades after a few seconds unless a mode is waiting for clicks. */
   private say(message: string) {
+    clearTimeout(this.noteTimer);
     this.note.textContent = message;
+    this.note.classList.remove("faded");
+    this.noteTimer = window.setTimeout(() => this.note.classList.add("faded"), 5000);
   }
 
   /** Same shortcuts as the desktop version. Buttons send the same keys. */
@@ -583,7 +715,7 @@ export class Studio {
         this.scalpel = !this.scalpel;
         this.pendingBridge = false;
         if (this.scalpel) {
-          this.say(this.closed ? "Profile view: drag a line across the nose. Release to slice." : "Solid slicing needs a closed mesh. iPhone scans are open surfaces.");
+          this.say(this.closed ? "Drag a line across the nose, then let go to cut." : "Cutting needs a closed 3D model. Scans are open surfaces.");
           if (this.closed) this.view("2");
         }
         break;
@@ -591,7 +723,7 @@ export class Studio {
         if (this.history.length) {
           this.history.pop();
           this.original = false;
-          this.say(this.history.length ? `Undid one slice. ${this.history.length} left.` : "No slices left.");
+          this.say(this.history.length ? `Cut undone. ${this.history.length} left.` : "All cuts undone.");
         }
         break;
       case "1":
@@ -601,11 +733,11 @@ export class Studio {
         return;
       case " ":
         this.original = !this.original;
-        this.say(this.original ? "Showing the original. Space returns to the edit." : "Showing the edit.");
+        this.say(this.original ? "Showing the original face." : "Showing your edit.");
         break;
       case "b":
         if (this.history.length) {
-          this.say("Undo the slices before moving the bridge brush.");
+          this.say("Undo the cuts before moving the bridge area.");
           return;
         }
         this.scalpel = false;
@@ -621,7 +753,7 @@ export class Studio {
         this.c = defaultControls();
         this.original = this.pendingBridge = false;
         if (this.engine && this.marks.length === 5) this.engine = new Nose(this.base, this.marks);
-        this.say("Edits reset.");
+        this.say("All changes reset.");
         break;
       case "m":
         if (this.previewOnly) return;
@@ -698,6 +830,8 @@ export class Studio {
     document.querySelectorAll<HTMLButtonElement>("button[data-key]").forEach((button) => {
       button.addEventListener("click", () => this.key(button.dataset.key!));
     });
+    $("compare-before").addEventListener("click", () => this.setOriginal(true));
+    $("compare-after").addEventListener("click", () => this.setOriginal(false));
     $("export-ply").addEventListener("click", () => this.exportFile("ply"));
     $("export-json").addEventListener("click", () => this.exportFile("json"));
     $("show-colors").addEventListener("change", () => {
