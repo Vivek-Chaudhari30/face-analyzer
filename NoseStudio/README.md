@@ -2,7 +2,7 @@
 
 A local Python editor for visualizing proposed changes to an external nose surface. The included face is synthetic and uses millimeters. The sample includes its landmark positions, so you can start editing immediately.
 
-A browser version that deploys as a static site lives in `web/nose-studio/`. See its README.
+A browser version lives in `web/nose-studio/` and is live at [nose-studio.vercel.app](https://nose-studio.vercel.app). See its README.
 
 ## Run on your Mac
 

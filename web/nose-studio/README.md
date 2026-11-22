@@ -1,5 +1,7 @@
 # Nose Studio (browser)
 
+**Live: [nose-studio.vercel.app](https://nose-studio.vercel.app)**
+
 The browser version of `NoseStudio/`. It does the same job (load a face mesh, edit the nose, export the result), but runs in any browser and deploys as a plain static site with no server.
 
 Built with Three.js (WebGL) for drawing, Manifold (WebAssembly) for the scalpel, and MediaPipe Face Landmarker for the camera scan. The Python and VTK version in `NoseStudio/` is unchanged.
@@ -29,6 +31,13 @@ npm run preview   # serve dist/ the way a static host would
 ## Deploy
 
 `npm run build` writes a static site to `dist/`. Asset paths are relative, so any static host works: Vercel, Netlify, GitHub Pages, or S3. On Vercel, set the root directory to `web/nose-studio`. The build reads `../../NoseStudio` and `../../shared/samples`, so leave "include files outside the root directory" on (it's the default).
+
+The live site is the Vercel project `nose-studio`. It isn't linked to GitHub yet, so pushing to `main` does not update it. To update it by hand, build and upload only `dist/`:
+
+```sh
+npm run build
+cd dist && vercel link --yes --project nose-studio && vercel deploy --prod --yes
+```
 
 The camera only works over https (or on localhost). All of these hosts serve https. The face model (`face_landmarker.task`, about 3.6 MB) loads from Google's MediaPipe model host the first time someone opens the camera. To host it yourself, put the file in `public/` and change `MODEL_URL` in `src/camera.ts`.
 
