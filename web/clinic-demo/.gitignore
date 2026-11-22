@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vite/
+*.log
+.env
+.env.*
+!.env.example
+# Never commit face scans or exports
+scans/
+*.scan.json
+aurel-*-mesh*.json
