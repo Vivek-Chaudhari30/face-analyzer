@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Xcode / Swift
+ios/**/DerivedData/
+ios/**/build/
+ios/**/*.xcuserstate
+ios/**/xcuserdata/
+ios/**/*.moved-aside
+ios/**/*.hmap
+ios/**/*.ipa
+ios/**/*.dSYM.zip
+ios/**/*.dSYM
+ios/**/.swiftpm/
+ios/**/Packages/
+*.xcscmblueprint
+*.xccheckout
+
+# Node / web
+web/node_modules/
+web/dist/
+web/build/
+web/.next/
+web/out/
+web/.vite/
+web/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

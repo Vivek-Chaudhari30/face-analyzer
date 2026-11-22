@@ -1,0 +1,7 @@
+# Fill in the web owner's GitHub username, then uncomment these lines.
+# GitHub will request the listed person when a pull request touches that path.
+#
+# /ios/      @Vivek-Chaudhari30
+# /web/      @WEB_CONTRIBUTOR_USERNAME
+# /shared/   @Vivek-Chaudhari30 @WEB_CONTRIBUTOR_USERNAME
+# /docs/     @Vivek-Chaudhari30 @WEB_CONTRIBUTOR_USERNAME

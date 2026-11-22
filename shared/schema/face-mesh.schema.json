@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Vivek-Chaudhari30/face-analyzer/shared/schema/face-mesh.schema.json",
+  "title": "FaceMeshExport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "vertices",
+    "indices",
+    "units",
+    "coordinateSystem",
+    "topology",
+    "vertexCount",
+    "triangleCount"
+  ],
+  "properties": {
+    "vertices": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "items": { "type": "number" }
+      }
+    },
+    "indices": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "textureCoordinates": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": { "type": "number" }
+      }
+    },
+    "blendShapes": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "units": { "const": "meters" },
+    "coordinateSystem": { "const": "ARKit face-local" },
+    "topology": { "enum": ["ARFaceGeometry", "sample"] },
+    "vertexCount": { "type": "integer", "minimum": 3 },
+    "triangleCount": { "type": "integer", "minimum": 1 }
+  }
+}
