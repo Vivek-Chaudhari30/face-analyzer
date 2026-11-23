@@ -4,7 +4,8 @@ import { Reveal } from "../components/Reveal";
 import { SectionHeading } from "../components/SectionHeading";
 import { Portrait } from "../components/Portrait";
 import { ProfileArt } from "../components/ProfileArt";
-import { SERVICES, TEAM } from "../data/clinic";
+import { TEAM } from "../data/clinic";
+import { SERVICES } from "../data/services";
 
 const CONSULT_STEPS = [
   { t: "Introduction", d: "A relaxed conversation about what you notice, what you would like to understand, and why now." },
@@ -61,14 +62,14 @@ export default function Clinic() {
             <div className="lg:col-span-7">
               <SectionHeading eyebrow="Services" title={<>Rhinoplasty and <em className="text-gold">facial harmony.</em></>} />
               <div className="mt-14 divide-y divide-line border-y border-line">
-                {SERVICES.map((s, i) => (
+                {SERVICES.slice(0, 5).map((s, i) => (
                   <Reveal key={s.id} delay={i * 0.06} className="group grid gap-2 py-7 sm:grid-cols-[1fr_auto] sm:items-center">
                     <div>
-                      <h3 className="text-3xl transition-colors duration-500 group-hover:text-gold">{s.title}</h3>
-                      <p className="mt-2 max-w-lg text-sm leading-6 text-taupe-deep">{s.blurb}</p>
+                      <h3 className="text-3xl transition-colors duration-500 group-hover:text-gold">{s.name}</h3>
+                      <p className="mt-2 max-w-lg text-sm leading-6 text-taupe-deep">{s.short}</p>
                     </div>
-                    <Button to={`/book?service=${s.id}`} variant="ghost" arrow>
-                      Enquire
+                    <Button to={`/treatments/${s.id}`} variant="ghost" arrow>
+                      Explore treatment
                     </Button>
                   </Reveal>
                 ))}
@@ -129,3 +130,4 @@ export default function Clinic() {
     </>
   );
 }
+

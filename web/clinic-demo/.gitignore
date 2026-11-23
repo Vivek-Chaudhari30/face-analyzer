@@ -9,3 +9,4 @@ dist/
 scans/
 *.scan.json
 aurel-*-mesh*.json
+public/mediapipe/

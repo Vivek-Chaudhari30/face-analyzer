@@ -7,6 +7,9 @@ const TITLES: Record<string, string> = {
   "/": "Refine Your Profile. Reveal Your Confidence.",
   "/clinic": "Our Clinic",
   "/studio": "3D Profile Studio",
+  "/studio/compare": "Compare Your Profile",
+  "/studio/explore": "Your Aesthetic Exploration",
+  "/treatments": "Treatments",
   "/for-clinics": "For Clinics: Hypothetical Impact Calculator",
   "/book": "Book a Consultation",
 };
@@ -23,7 +26,8 @@ export function Layout() {
   }, [pathname, hash]);
 
   useEffect(() => {
-    document.title = `${TITLES[pathname] ?? "Page not found"} | AUREL Aesthetics`;
+    const known = TITLES[pathname] ?? (pathname.startsWith("/treatments/") ? "Treatment" : "Page not found");
+    document.title = `${known} | AUREL Aesthetics`;
   }, [pathname]);
 
   return (
@@ -45,3 +49,4 @@ export function Layout() {
     </div>
   );
 }
+

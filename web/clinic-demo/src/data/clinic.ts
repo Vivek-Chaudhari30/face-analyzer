@@ -4,36 +4,6 @@ export const CLINIC = {
   address: "Placeholder address · Fictional clinic",
 };
 
-export interface Service {
-  id: string;
-  title: string;
-  blurb: string;
-}
-
-/** Values double as the "Service of interest" options on the booking form. */
-export const SERVICES: Service[] = [
-  {
-    id: "rhinoplasty",
-    title: "Rhinoplasty consultation",
-    blurb: "A considered conversation about the shape, balance and function of your nose.",
-  },
-  {
-    id: "revision",
-    title: "Revision rhinoplasty consultation",
-    blurb: "A careful review for those who have had a previous nasal procedure and want to talk through options.",
-  },
-  {
-    id: "harmony",
-    title: "Facial harmony assessment",
-    blurb: "A whole-face view of proportion, so that any change to one feature is judged in context.",
-  },
-  {
-    id: "general",
-    title: "General aesthetic consultation",
-    blurb: "An unhurried introduction to the clinic, the team, and what to expect.",
-  },
-];
-
 export interface TeamMember {
   name: string;
   role: string;
@@ -75,16 +45,21 @@ export const PROCESS = [
   {
     n: "01",
     title: "Scan",
-    body: "A brief, private face scan on a compatible phone captures your profile as a 3D model in minutes.",
+    body: "A guided camera scan from five angles builds a 3D model of your profile, right in your browser. Nothing is uploaded.",
   },
   {
     n: "02",
     title: "Explore",
-    body: "Rotate your own profile and try gentle, illustrative adjustments, so you can put words to what you are curious about.",
+    body: "Turn your own profile in 3D, side by side with an identical copy, from the front, side or three-quarter view.",
   },
   {
     n: "03",
+    title: "Customize",
+    body: "Optionally move gentle, illustrative sliders on the copy to put words to what you are curious about. Your original never changes.",
+  },
+  {
+    n: "04",
     title: "Consult",
-    body: "Bring those ideas to a surgeon. Together you discuss what is realistic, safe, and right for your face.",
+    body: "Bring your ideas to a surgeon, who explains what is realistic, safe and right for your face, including doing nothing.",
   },
 ];

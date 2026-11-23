@@ -46,7 +46,7 @@ export function Header() {
       <div className="mx-auto flex h-20 w-full max-w-[1320px] items-center justify-between px-6 sm:px-10 lg:px-14">
         <Logo />
 
-        <nav aria-label="Primary" className="hidden items-center gap-10 lg:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-8 xl:flex">
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.to === "/"} className={linkCls}>
               {item.label}
@@ -54,7 +54,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden lg:block">
+        <div className="hidden xl:block">
           <Button to={BOOK_PATH} variant="solid" className="!px-6 !py-3">
             Book Consultation
           </Button>
@@ -62,7 +62,7 @@ export function Header() {
 
         <button
           type="button"
-          className="-mr-2 flex h-11 w-11 items-center justify-center text-charcoal lg:hidden"
+          className="-mr-2 flex h-11 w-11 items-center justify-center text-charcoal xl:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           aria-controls="mobile-menu"
@@ -81,7 +81,7 @@ export function Header() {
             animate={{ opacity: 1, height: "calc(100vh - 5rem)" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden bg-ivory lg:hidden"
+            className="overflow-hidden bg-ivory xl:hidden"
           >
             <div className="flex h-full flex-col justify-between px-6 pb-10 pt-6 sm:px-10">
               <ul className="space-y-1">
@@ -109,3 +109,4 @@ export function Header() {
     </header>
   );
 }
+
